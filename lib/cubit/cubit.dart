@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:todo_app/cubit/states.dart';
 import 'package:todo_app/services/notification_service.dart';
-import 'package:intl/intl.dart';
 
 class TodoCubit extends Cubit<TodoStates> {
   //TodoCubit(super.initialState);
@@ -40,7 +39,8 @@ class TodoCubit extends Cubit<TodoStates> {
         await db.execute('ALTER TABLE tasks ADD COLUMN details TEXT');
       }
       if (oldVersion < 3) {
-        await db.execute('ALTER TABLE tasks ADD COLUMN priority TEXT DEFAULT "medium"');
+        await db.execute(
+            'ALTER TABLE tasks ADD COLUMN priority TEXT DEFAULT "medium"');
       }
     }, onOpen: (db) {
       print('Database Opened');
@@ -72,16 +72,16 @@ class TodoCubit extends Cubit<TodoStates> {
       try {
         print('Parsing time: $time'); // Debug time
         print('Parsing date: $date'); // Debug date
-        
+
         // Parse time
         final timeComponents = time.split(' ');
         final timePart = timeComponents[0];
         final period = timeComponents[1].toUpperCase(); // AM/PM
-        
+
         final hourMinute = timePart.split(':');
         var hour = int.parse(hourMinute[0]);
         final minute = int.parse(hourMinute[1]);
-        
+
         // Convert to 24-hour format if needed
         if (period == 'PM' && hour != 12) {
           hour += 12;
@@ -91,10 +91,12 @@ class TodoCubit extends Cubit<TodoStates> {
 
         // Parse date (e.g., "Dec 25, 2024")
         final dateComponents = date.split(' ');
-        final month = _getMonthNumber(dateComponents[0]); // Convert month name to number
-        final day = int.parse(dateComponents[1].replaceAll(',', '')); // Remove comma and parse
+        final month =
+            _getMonthNumber(dateComponents[0]); // Convert month name to number
+        final day = int.parse(
+            dateComponents[1].replaceAll(',', '')); // Remove comma and parse
         final year = int.parse(dateComponents[2]);
-        
+
         final scheduleTime = DateTime(
           year,
           month,
@@ -111,8 +113,8 @@ class TodoCubit extends Cubit<TodoStates> {
             body: title,
             scheduleTime: scheduleTime,
           )
-            .then((_) => print('Notification scheduled successfully'))
-            .catchError((e) => print('Error scheduling notification: $e'));
+              .then((_) => print('Notification scheduled successfully'))
+              .catchError((e) => print('Error scheduling notification: $e'));
         } else {
           print('Task time is in the past, not scheduling notification');
         }
@@ -126,8 +128,18 @@ class TodoCubit extends Cubit<TodoStates> {
 
   int _getMonthNumber(String monthName) {
     final months = {
-      'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6,
-      'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12
+      'Jan': 1,
+      'Feb': 2,
+      'Mar': 3,
+      'Apr': 4,
+      'May': 5,
+      'Jun': 6,
+      'Jul': 7,
+      'Aug': 8,
+      'Sep': 9,
+      'Oct': 10,
+      'Nov': 11,
+      'Dec': 12
     };
     return months[monthName] ?? 1; // Default to January if month not found
   }
@@ -150,7 +162,7 @@ class TodoCubit extends Cubit<TodoStates> {
     try {
       // Cancel the notification for this task
       await NotificationService.cancelNotification(id);
-      
+
       // Delete from database
       await database?.rawDelete('DELETE FROM tasks WHERE id = ?', [id]);
       getDataFromDB(database);
@@ -168,8 +180,8 @@ class TodoCubit extends Cubit<TodoStates> {
   void changeBottomSheetSt({required bool isShow, required IconData icon}) {
     isBottomSheetShown = isShow;
     fabIcon = icon;
-    if (!isShow) {
-      selectedPriority = 'medium'; // Reset priority when closing
+    if (isShow) {
+      selectedPriority = 'Medium'; // Set default priority when bottom sheet opens
     }
     emit(ChangeBottomSheetState());
   }
@@ -237,9 +249,11 @@ class TodoCubit extends Cubit<TodoStates> {
       if (priority.toLowerCase() == 'all') {
         filteredTasks = List.from(tasks);
       } else {
-        filteredTasks = tasks.where((task) => 
-          task['priority']?.toString().toLowerCase() == priority.toLowerCase()
-        ).toList();
+        filteredTasks = tasks
+            .where((task) =>
+                task['priority']?.toString().toLowerCase() ==
+                priority.toLowerCase())
+            .toList();
       }
       emit(FilterTasksSuccessState());
     } catch (error) {

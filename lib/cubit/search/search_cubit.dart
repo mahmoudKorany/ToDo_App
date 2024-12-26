@@ -1,7 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
-import '../../models/task_model.dart';
-
 part 'search_state.dart';
 
 class SearchCubit extends Cubit<SearchState> {
@@ -24,7 +22,7 @@ class SearchCubit extends Cubit<SearchState> {
       final time = task['time']?.toString() ?? '';
       final priority = task['priority']?.toString() ?? '';
       final status = task['status']?.toString() ?? '';
-      
+
       return title.toLowerCase().contains(lowercaseQuery) ||
           body.toLowerCase().contains(lowercaseQuery) ||
           details.toLowerCase().contains(lowercaseQuery) ||
@@ -48,12 +46,13 @@ class SearchCubit extends Cubit<SearchState> {
   void deleteTask(Map<String, dynamic> task) {
     // Remove the task from allTasks
     allTasks.removeWhere((t) => t['id'] == task['id']);
-    
+
     // If we're in a search state, update the search results
     if (state is SearchLoaded) {
       final currentResults = (state as SearchLoaded).results;
-      final updatedResults = currentResults.where((t) => t['id'] != task['id']).toList();
-      
+      final updatedResults =
+          currentResults.where((t) => t['id'] != task['id']).toList();
+
       if (updatedResults.isEmpty) {
         emit(SearchNoResults());
       } else {
@@ -65,7 +64,7 @@ class SearchCubit extends Cubit<SearchState> {
   void restoreTask(Map<String, dynamic> task) {
     // Add the task back to allTasks
     allTasks.add(task);
-    
+
     // If we're in a search state, update the search results
     if (state is SearchLoaded || state is SearchNoResults) {
       // Re-run the current search to update results

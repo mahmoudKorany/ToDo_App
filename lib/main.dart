@@ -4,7 +4,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:todo_app/cubit/cubit.dart';
 import 'package:todo_app/cubit/search/search_cubit.dart';
-import 'package:todo_app/layout/home_layout.dart';
 import 'package:todo_app/screens/splash_screen.dart';
 import 'package:todo_app/screens/search_screen.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';

@@ -16,7 +16,8 @@ class TaskDetailScreen extends StatefulWidget {
   State<TaskDetailScreen> createState() => _TaskDetailScreenState();
 }
 
-class _TaskDetailScreenState extends State<TaskDetailScreen> with SingleTickerProviderStateMixin {
+class _TaskDetailScreenState extends State<TaskDetailScreen>
+    with SingleTickerProviderStateMixin {
   late TextEditingController titleController;
   late TextEditingController detailsController;
   late TextEditingController dateController;
@@ -165,14 +166,17 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> with SingleTickerPr
                 child: InkWell(
                   borderRadius: BorderRadius.circular(16.r),
                   onTap: () {
-                    final newStatus = currentTask['status'] == 'done' ? 'new' : 'done';
+                    final newStatus =
+                        currentTask['status'] == 'done' ? 'new' : 'done';
                     final todoCubit = TodoCubit.get(context);
                     final scaffoldMessenger = ScaffoldMessenger.of(context);
 
-                    todoCubit.updateTaskStatus(
+                    todoCubit
+                        .updateTaskStatus(
                       id: currentTask['id'],
                       status: newStatus,
-                    ).then((_) {
+                    )
+                        .then((_) {
                       if (mounted) {
                         setState(() {
                           currentTask['status'] = newStatus;
@@ -197,11 +201,14 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> with SingleTickerPr
                               TextButton(
                                 onPressed: () {
                                   // Undo the status change
-                                  final originalStatus = newStatus == 'done' ? 'new' : 'done';
-                                  todoCubit.updateTaskStatus(
+                                  final originalStatus =
+                                      newStatus == 'done' ? 'new' : 'done';
+                                  todoCubit
+                                      .updateTaskStatus(
                                     id: currentTask['id'],
                                     status: originalStatus,
-                                  ).then((_) {
+                                  )
+                                      .then((_) {
                                     if (mounted) {
                                       setState(() {
                                         currentTask['status'] = originalStatus;
@@ -211,8 +218,10 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> with SingleTickerPr
                                   });
                                 },
                                 style: TextButton.styleFrom(
-                                  padding: EdgeInsets.symmetric(horizontal: 8.w),
-                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  padding:
+                                      EdgeInsets.symmetric(horizontal: 8.w),
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
                                 ),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
@@ -244,7 +253,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> with SingleTickerPr
                             borderRadius: BorderRadius.circular(12.r),
                           ),
                           margin: EdgeInsets.all(16.w),
-                          duration: Duration(seconds: 3),
+                          duration: const Duration(seconds: 3),
                           elevation: 4,
                         ),
                       );
@@ -415,12 +424,14 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> with SingleTickerPr
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
                                 colors: [
-                                  Theme.of(context).brightness == Brightness.dark
+                                  Theme.of(context).brightness ==
+                                          Brightness.dark
                                       ? Color(0xFF2D2D2D)
                                       : Theme.of(context)
                                           .primaryColor
                                           .withOpacity(0.1),
-                                  Theme.of(context).brightness == Brightness.dark
+                                  Theme.of(context).brightness ==
+                                          Brightness.dark
                                       ? Color(0xFF252525)
                                       : Theme.of(context)
                                           .primaryColor
@@ -443,14 +454,17 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> with SingleTickerPr
                                       padding: EdgeInsets.all(12.w),
                                       decoration: BoxDecoration(
                                         color: _getPriorityColor(
-                                                currentTask['priority'] ?? 'medium')
+                                                currentTask['priority'] ??
+                                                    'medium')
                                             .withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(16.r),
+                                        borderRadius:
+                                            BorderRadius.circular(16.r),
                                       ),
                                       child: Icon(
                                         Icons.flag_rounded,
                                         color: _getPriorityColor(
-                                            currentTask['priority'] ?? 'medium'),
+                                            currentTask['priority'] ??
+                                                'medium'),
                                         size: 24.w,
                                       ),
                                     ),
@@ -466,8 +480,10 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> with SingleTickerPr
                                               fontSize: 20.sp,
                                               fontWeight: FontWeight.w600,
                                               decoration:
-                                                  currentTask['status'] == 'done'
-                                                      ? TextDecoration.lineThrough
+                                                  currentTask['status'] ==
+                                                          'done'
+                                                      ? TextDecoration
+                                                          .lineThrough
                                                       : null,
                                             ),
                                           ),
@@ -480,11 +496,13 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> with SingleTickerPr
                                                     vertical: 6.h),
                                                 decoration: BoxDecoration(
                                                   color: _getPriorityColor(
-                                                          currentTask['priority'] ??
+                                                          currentTask[
+                                                                  'priority'] ??
                                                               'medium')
                                                       .withOpacity(0.1),
                                                   borderRadius:
-                                                      BorderRadius.circular(20.r),
+                                                      BorderRadius.circular(
+                                                          20.r),
                                                 ),
                                                 child: Text(
                                                   (currentTask['priority'] ??
@@ -493,7 +511,8 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> with SingleTickerPr
                                                       .toUpperCase(),
                                                   style: TextStyle(
                                                     color: _getPriorityColor(
-                                                        currentTask['priority'] ??
+                                                        currentTask[
+                                                                'priority'] ??
                                                             'medium'),
                                                     fontSize: 12.sp,
                                                     fontWeight: FontWeight.w600,
@@ -1027,45 +1046,6 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> with SingleTickerPr
         ],
       ),
     );
-  }
-
-  Color _getStatusColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'done':
-        return Colors.green;
-      case 'archived':
-        return Colors.blue;
-      case 'new':
-        return Colors.orange;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  IconData _getStatusIcon(String status) {
-    switch (status.toLowerCase()) {
-      case 'done':
-        return Icons.check_circle_rounded;
-      case 'archived':
-        return Icons.archive_rounded;
-      case 'new':
-        return Icons.pending_rounded;
-      default:
-        return Icons.help_outline_rounded;
-    }
-  }
-
-  String _getStatusText(String status) {
-    switch (status.toLowerCase()) {
-      case 'done':
-        return 'COMPLETED';
-      case 'archived':
-        return 'ARCHIVED';
-      case 'new':
-        return 'PENDING';
-      default:
-        return status.toUpperCase();
-    }
   }
 
   Color _getPriorityColor(String priority) {

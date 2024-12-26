@@ -40,8 +40,10 @@ class HomeScreen extends StatelessWidget {
           child: Scaffold(
             key: scaffoldKey,
             backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-            floatingActionButton: _buildFloatingActionButton(context, todoCubit),
-            floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+            floatingActionButton:
+                _buildFloatingActionButton(context, todoCubit),
+            floatingActionButtonLocation:
+                FloatingActionButtonLocation.centerDocked,
             bottomNavigationBar: CustomBottomNavBar(
               currentIndex: todoCubit.currentIndex,
               onTap: (index) => todoCubit.changeIndex(index),
@@ -59,30 +61,19 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildFloatingActionButton(BuildContext context, TodoCubit todoCubit) {
-    return Container(
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: Theme.of(context).primaryColor.withOpacity(0.3),
-            spreadRadius: 2,
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return FloatingActionButton(
+      backgroundColor: Colors.deepOrange,
+      foregroundColor: Colors.white,
+      elevation: isDark ? 4 : 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16.r),
       ),
-      child: FloatingActionButton(
-        onPressed: () => _handleFabPressed(context, todoCubit),
-        backgroundColor: Theme.of(context).primaryColor,
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 200),
-          child: Icon(
-            todoCubit.fabIcon,
-            key: ValueKey<IconData>(todoCubit.fabIcon),
-            color: Colors.white,
-          ),
-        ),
+      child: Icon(
+        todoCubit.fabIcon,
+        size: 24.sp,
       ),
+      onPressed: () => _handleFabPressed(context, todoCubit),
     );
   }
 
@@ -109,18 +100,27 @@ class HomeScreen extends StatelessWidget {
   }
 
   void _showAddTaskBottomSheet(BuildContext context, TodoCubit todoCubit) {
-    scaffoldKey.currentState?.showBottomSheet(
-      (context) => StatefulBuilder(
-        builder: (context, setState) => _buildBottomSheetContent(context, setState, todoCubit),
-      ),
-      backgroundColor: Colors.transparent,
-    ).closed.then((value) {
+    scaffoldKey.currentState
+        ?.showBottomSheet(
+          (context) => StatefulBuilder(
+            builder: (context, setState) =>
+                _buildBottomSheetContent(context, setState, todoCubit),
+          ),
+          backgroundColor: Colors.transparent,
+        )
+        .closed
+        .then((value) {
       todoCubit.changeBottomSheetSt(isShow: false, icon: Icons.edit);
+      titleController.clear();
+      timeController.clear();
+      dateController.clear();
+      detailsController.clear();
     });
     todoCubit.changeBottomSheetSt(isShow: true, icon: Icons.add);
   }
 
-  Widget _buildBottomSheetContent(BuildContext context, StateSetter setState, TodoCubit todoCubit) {
+  Widget _buildBottomSheetContent(
+      BuildContext context, StateSetter setState, TodoCubit todoCubit) {
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).scaffoldBackgroundColor,
@@ -160,6 +160,7 @@ class HomeScreen extends StatelessWidget {
                 _buildTimeField(context, setState),
                 SizedBox(height: 15.h),
                 _buildDateField(context, setState),
+                SizedBox(height: 15.h),
                 _buildPrioritySection(context, todoCubit, setState),
                 SizedBox(height: 20.h),
               ],
@@ -257,19 +258,20 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPrioritySection(BuildContext context, TodoCubit todoCubit, StateSetter setState) {
+  Widget _buildPrioritySection(
+      BuildContext context, TodoCubit todoCubit, StateSetter setState) {
+    final Map<String, Color> priorityColors = {
+      'Low': Colors.green,
+      'Medium': Colors.orange,
+      'High': Colors.red,
+    };
+
     return Container(
+      width: double.infinity,
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16.r),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(12.r),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -278,51 +280,91 @@ class HomeScreen extends StatelessWidget {
             'Priority',
             style: TextStyle(
               fontSize: 16.sp,
-              fontWeight: FontWeight.w500,
-              color: Theme.of(context).textTheme.bodyLarge?.color,
+              fontWeight: FontWeight.w600,
+              color: Theme.of(context).textTheme.titleLarge?.color,
             ),
           ),
           SizedBox(height: 12.h),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                buildPriorityButton(
-                  context,
-                  'High',
-                  Colors.red,
-                  todoCubit.selectedPriority == 'high',
-                  () {
-                    todoCubit.changePriority('high');
-                    setState(() {});
-                  },
-                ),
-                SizedBox(width: 8.w),
-                buildPriorityButton(
-                  context,
-                  'Medium',
-                  Colors.orange,
-                  todoCubit.selectedPriority == 'medium',
-                  () {
-                    todoCubit.changePriority('medium');
-                    setState(() {});
-                  },
-                ),
-                SizedBox(width: 8.w),
-                buildPriorityButton(
-                  context,
-                  'Low',
-                  Colors.green,
-                  todoCubit.selectedPriority == 'low',
-                  () {
-                    todoCubit.changePriority('low');
-                    setState(() {});
-                  },
-                ),
-              ],
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              buildPriorityButton(
+                context,
+                'Low',
+                priorityColors['Low']!,
+                todoCubit.selectedPriority == 'Low',
+                () {
+                  setState(() {
+                    todoCubit.changePriority('Low');
+                  });
+                },
+              ),
+              buildPriorityButton(
+                context,
+                'Medium',
+                priorityColors['Medium']!,
+                todoCubit.selectedPriority == 'Medium',
+                () {
+                  setState(() {
+                    todoCubit.changePriority('Medium');
+                  });
+                },
+              ),
+              buildPriorityButton(
+                context,
+                'High',
+                priorityColors['High']!,
+                todoCubit.selectedPriority == 'High',
+                () {
+                  setState(() {
+                    todoCubit.changePriority('High');
+                  });
+                },
+              ),
+            ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget buildPriorityButton(
+    BuildContext context,
+    String label,
+    Color color,
+    bool isSelected,
+    VoidCallback onTap,
+  ) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+        decoration: BoxDecoration(
+          color: isSelected ? color.withOpacity(0.1) : Colors.transparent,
+          border: Border.all(
+            color: isSelected ? color : Colors.grey.withOpacity(0.3),
+            width: 1,
+          ),
+          borderRadius: BorderRadius.circular(8.r),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.flag_rounded,
+              size: 16.sp,
+              color: isSelected ? color : Colors.grey,
+            ),
+            SizedBox(width: 4.w),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? color : Colors.grey,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -351,47 +393,5 @@ class HomeScreen extends StatelessWidget {
         dateController.text = DateFormat.yMMMd().format(picked);
       });
     }
-  }
-
-  Widget buildPriorityButton(
-    BuildContext context,
-    String label,
-    Color color,
-    bool isSelected,
-    VoidCallback onTap,
-  ) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 16.w),
-        decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.2) : Colors.transparent,
-          borderRadius: BorderRadius.circular(12.r),
-          border: Border.all(
-            color: isSelected ? color : Colors.grey[300]!,
-            width: 1.5,
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.flag,
-              color: isSelected ? color : Colors.grey[400],
-              size: 16.sp,
-            ),
-            SizedBox(width: 8.w),
-            Text(
-              label,
-              style: TextStyle(
-                color: isSelected ? color : Colors.grey[600],
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                fontSize: 14.sp,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }
