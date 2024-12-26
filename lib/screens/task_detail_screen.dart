@@ -166,13 +166,11 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> with SingleTickerPr
                   borderRadius: BorderRadius.circular(16.r),
                   onTap: () {
                     final newStatus = currentTask['status'] == 'done' ? 'new' : 'done';
-                    TodoCubit.get(context).updateTask(
+                    final todoCubit = TodoCubit.get(context);
+                    final scaffoldMessenger = ScaffoldMessenger.of(context);
+
+                    todoCubit.updateTaskStatus(
                       id: currentTask['id'],
-                      title: currentTask['title'],
-                      details: currentTask['details'],
-                      date: currentTask['date'],
-                      time: currentTask['time'],
-                      priority: currentTask['priority'],
                       status: newStatus,
                     ).then((_) {
                       if (mounted) {
@@ -180,20 +178,11 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> with SingleTickerPr
                           currentTask['status'] = newStatus;
                         });
                       }
-                      final scaffoldMessenger = ScaffoldMessenger.of(context);
-                      final todoCubit = TodoCubit.get(context);
+
                       scaffoldMessenger.showSnackBar(
                         SnackBar(
                           content: Row(
                             children: [
-                              Icon(
-                                newStatus == 'done'
-                                    ? Icons.check_circle_rounded
-                                    : Icons.refresh_rounded,
-                                color: Colors.white,
-                                size: 24.w,
-                              ),
-                              SizedBox(width: 12.w),
                               Expanded(
                                 child: Text(
                                   newStatus == 'done'
@@ -209,13 +198,8 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> with SingleTickerPr
                                 onPressed: () {
                                   // Undo the status change
                                   final originalStatus = newStatus == 'done' ? 'new' : 'done';
-                                  todoCubit.updateTask(
+                                  todoCubit.updateTaskStatus(
                                     id: currentTask['id'],
-                                    title: currentTask['title'],
-                                    details: currentTask['details'],
-                                    date: currentTask['date'],
-                                    time: currentTask['time'],
-                                    priority: currentTask['priority'],
                                     status: originalStatus,
                                   ).then((_) {
                                     if (mounted) {
@@ -254,7 +238,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> with SingleTickerPr
                           ),
                           backgroundColor: newStatus == 'done'
                               ? Colors.green.shade600
-                              : Colors.deepOrange,
+                              : Colors.orange.shade600,
                           behavior: SnackBarBehavior.floating,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12.r),
@@ -262,13 +246,6 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> with SingleTickerPr
                           margin: EdgeInsets.all(16.w),
                           duration: Duration(seconds: 3),
                           elevation: 4,
-                          action: SnackBarAction(
-                            label: 'DISMISS',
-                            textColor: Colors.white,
-                            onPressed: () {
-                              scaffoldMessenger.hideCurrentSnackBar();
-                            },
-                          ),
                         ),
                       );
                     });

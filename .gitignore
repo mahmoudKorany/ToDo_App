@@ -5,9 +5,15 @@
 *.swp
 .DS_Store
 .atom/
+.build/
 .buildlog/
 .history
 .svn/
+.swiftpm/
+.swiftpm/xcode/package.xcworkspace/
+.swiftpm/xcode/xcuserdata/
+**/.build/
+Package.resolved
 migrate_working_dir/
 
 # IntelliJ related

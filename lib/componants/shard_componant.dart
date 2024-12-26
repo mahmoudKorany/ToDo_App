@@ -120,9 +120,12 @@ Widget buildTaskItem(Map model, BuildContext context) {
           );
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: const Text('Task completed'),
+              content: Text(
+                model['status'] == 'done' ? 'Task marked as incomplete' : 'Task completed',
+                style: TextStyle(fontSize: 16.sp),
+              ),
               behavior: SnackBarBehavior.floating,
-              backgroundColor: Colors.green.shade400,
+              backgroundColor: model['status'] == 'done' ? Colors.orange.shade400 : Colors.green.shade400,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10.r),
               ),
