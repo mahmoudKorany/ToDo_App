@@ -6,6 +6,7 @@ import 'package:todo_app/componants/shard_componant.dart';
 import 'package:todo_app/cubit/cubit.dart';
 import 'package:todo_app/cubit/states.dart';
 import 'package:intl/intl.dart';
+import 'package:todo_app/services/notification_service.dart';
 
 class TaskDetailScreen extends StatefulWidget {
   final Map task;
@@ -315,12 +316,14 @@ class _TaskDetailScreenState extends State<TaskDetailScreen>
               margin: EdgeInsets.all(8.w),
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12.r),
+                borderRadius: BorderRadius.circular(10.r),
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.1),
+                  color: Colors.white.withOpacity(0.15),
+                  width: 1.2,
                 ),
               ),
               child: IconButton(
+                padding: EdgeInsets.zero,
                 icon: Icon(
                   Icons.arrow_back_ios_rounded,
                   size: 20.w,
@@ -331,12 +334,14 @@ class _TaskDetailScreenState extends State<TaskDetailScreen>
             ),
             actions: [
               Container(
-                margin: EdgeInsets.all(8.w),
+                margin: EdgeInsets.all(10.w),
+                padding: EdgeInsets.all(2.w),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12.r),
                   border: Border.all(
-                    color: Colors.white.withOpacity(0.1),
+                    color: Colors.white.withOpacity(0.15),
+                    width: 1.2,
                   ),
                   boxShadow: [
                     BoxShadow(
@@ -347,6 +352,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen>
                   ],
                 ),
                 child: IconButton(
+                  padding: EdgeInsets.zero,
                   icon: Icon(
                     Icons.delete_rounded,
                     color: Colors.white,
@@ -355,6 +361,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen>
                   onPressed: () => _showDeleteDialog(context),
                 ),
               ),
+              SizedBox(width: 6.w),
             ],
             systemOverlayStyle: SystemUiOverlayStyle(
               statusBarColor: Colors.transparent,
@@ -870,25 +877,39 @@ class _TaskDetailScreenState extends State<TaskDetailScreen>
                             borderRadius: BorderRadius.circular(12.r),
                           ),
                         ),
-                        onPressed: () {
+                        onPressed: () async {
                           if (formkey.currentState!.validate()) {
-                            TodoCubit.get(context).updateTask(
-                              id: currentTask['id'],
-                              title: titleController.text,
-                              details: detailsController.text,
-                              date: dateController.text,
-                              time: timeController.text,
-                              priority: TodoCubit.get(context).selectedPriority,
-                            );
-                            setState(() {
-                              currentTask['title'] = titleController.text;
-                              currentTask['details'] = detailsController.text;
-                              currentTask['date'] = dateController.text;
-                              currentTask['time'] = timeController.text;
-                              currentTask['priority'] =
-                                  TodoCubit.get(context).selectedPriority;
-                            });
-                            Navigator.pop(context);
+                            try {
+                              // Schedule alarm for the task
+                              final DateTime taskDateTime = DateFormat('yyyy-MM-dd HH:mm')
+                                  .parse('${dateController.text} ${timeController.text}');
+                              
+                              await NotificationService.createTaskNotification(
+                                title: '⏰ Task Alarm!',
+                                body: 'Time for task: ${titleController.text}',
+                                scheduleTime: taskDateTime,
+                              );
+
+                              await TodoCubit.get(context).updateTask(
+                                id: currentTask['id'],
+                                title: titleController.text,
+                                details: detailsController.text,
+                                date: dateController.text,
+                                time: timeController.text,
+                                priority: TodoCubit.get(context).selectedPriority,
+                              );
+                              setState(() {
+                                currentTask['title'] = titleController.text;
+                                currentTask['details'] = detailsController.text;
+                                currentTask['date'] = dateController.text;
+                                currentTask['time'] = timeController.text;
+                                currentTask['priority'] =
+                                    TodoCubit.get(context).selectedPriority;
+                              });
+                              Navigator.pop(context);
+                            } catch (e) {
+                              print(e);
+                            }
                           }
                         },
                         child: Text(

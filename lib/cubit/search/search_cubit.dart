@@ -13,29 +13,35 @@ class SearchCubit extends Cubit<SearchState> {
       return;
     }
 
-    final lowercaseQuery = query.toLowerCase();
-    final searchResults = allTasks.where((task) {
-      final title = task['title']?.toString() ?? '';
-      final body = task['body']?.toString() ?? '';
-      final details = task['details']?.toString() ?? '';
-      final date = task['date']?.toString() ?? '';
-      final time = task['time']?.toString() ?? '';
-      final priority = task['priority']?.toString() ?? '';
-      final status = task['status']?.toString() ?? '';
+    emit(SearchLoading(query: query));
 
-      return title.toLowerCase().contains(lowercaseQuery) ||
-          body.toLowerCase().contains(lowercaseQuery) ||
-          details.toLowerCase().contains(lowercaseQuery) ||
-          date.toLowerCase().contains(lowercaseQuery) ||
-          time.toLowerCase().contains(lowercaseQuery) ||
-          priority.toLowerCase().contains(lowercaseQuery) ||
-          status.toLowerCase().contains(lowercaseQuery);
-    }).toList();
+    try {
+      final lowercaseQuery = query.toLowerCase();
+      final searchResults = allTasks.where((task) {
+        final title = task['title']?.toString() ?? '';
+        final body = task['body']?.toString() ?? '';
+        final details = task['details']?.toString() ?? '';
+        final date = task['date']?.toString() ?? '';
+        final time = task['time']?.toString() ?? '';
+        final priority = task['priority']?.toString() ?? '';
+        final status = task['status']?.toString() ?? '';
 
-    if (searchResults.isEmpty) {
-      emit(SearchNoResults());
-    } else {
-      emit(SearchLoaded(results: searchResults));
+        return title.toLowerCase().contains(lowercaseQuery) ||
+            body.toLowerCase().contains(lowercaseQuery) ||
+            details.toLowerCase().contains(lowercaseQuery) ||
+            date.toLowerCase().contains(lowercaseQuery) ||
+            time.toLowerCase().contains(lowercaseQuery) ||
+            priority.toLowerCase().contains(lowercaseQuery) ||
+            status.toLowerCase().contains(lowercaseQuery);
+      }).toList();
+
+      if (searchResults.isEmpty) {
+        emit(SearchNoResults(query: query));
+      } else {
+        emit(SearchLoaded(results: searchResults, query: query));
+      }
+    } catch (e) {
+      emit(SearchError(message: 'An error occurred while searching', query: query));
     }
   }
 
@@ -54,9 +60,9 @@ class SearchCubit extends Cubit<SearchState> {
           currentResults.where((t) => t['id'] != task['id']).toList();
 
       if (updatedResults.isEmpty) {
-        emit(SearchNoResults());
+        emit(SearchNoResults(query: (state as SearchLoaded).query));
       } else {
-        emit(SearchLoaded(results: updatedResults));
+        emit(SearchLoaded(results: updatedResults, query: (state as SearchLoaded).query));
       }
     }
   }

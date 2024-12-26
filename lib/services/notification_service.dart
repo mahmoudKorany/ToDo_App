@@ -1,7 +1,12 @@
+import 'dart:typed_data';
+
 import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:flutter/material.dart';
 
 class NotificationService {
+  static Int64List highVibrationPattern =
+      Int64List.fromList([0, 1000, 500, 1000, 500, 1000, 500, 1000]);
+
   static Future<void> initializeNotification() async {
     await AwesomeNotifications().initialize(
       null,
@@ -14,8 +19,23 @@ class NotificationService {
           ledColor: Colors.white,
           importance: NotificationImportance.High,
           channelShowBadge: true,
-          locked: true, // Prevent user from dismissing notification
-          criticalAlerts: true, // Enable critical alerts that bypass DND
+          locked: true,
+          criticalAlerts: true,
+        ),
+        NotificationChannel(
+          channelKey: 'task_alarm_channel',
+          channelName: 'Task Alarm',
+          channelDescription: 'Loud alarm notifications for tasks',
+          defaultColor: Colors.deepOrange,
+          ledColor: Colors.white,
+          importance: NotificationImportance.Max,
+          channelShowBadge: true,
+          enableVibration: true,
+          vibrationPattern: highVibrationPattern,
+          playSound: true,
+          defaultRingtoneType: DefaultRingtoneType.Alarm,
+          criticalAlerts: true,
+          locked: true,
         )
       ],
       debug: true,
@@ -48,20 +68,24 @@ class NotificationService {
     );
   }
 
-  static Future<void> onActionReceivedMethod(ReceivedAction receivedAction) async {
+  static Future<void> onActionReceivedMethod(
+      ReceivedAction receivedAction) async {
     // Handle notification action here
     print('Notification action received: ${receivedAction.buttonKeyPressed}');
   }
 
-  static Future<void> onNotificationCreatedMethod(ReceivedNotification receivedNotification) async {
+  static Future<void> onNotificationCreatedMethod(
+      ReceivedNotification receivedNotification) async {
     print('Notification created: ${receivedNotification.title}');
   }
 
-  static Future<void> onNotificationDisplayedMethod(ReceivedNotification receivedNotification) async {
+  static Future<void> onNotificationDisplayedMethod(
+      ReceivedNotification receivedNotification) async {
     print('Notification displayed: ${receivedNotification.title}');
   }
 
-  static Future<void> onDismissActionReceivedMethod(ReceivedAction receivedAction) async {
+  static Future<void> onDismissActionReceivedMethod(
+      ReceivedAction receivedAction) async {
     print('Notification dismissed: ${receivedAction.title}');
   }
 
@@ -76,33 +100,34 @@ class NotificationService {
     }
 
     if (!isAllowed) {
-      print('Notification permission denied');
       return;
     }
 
     await AwesomeNotifications().createNotification(
       content: NotificationContent(
         id: scheduleTime.millisecondsSinceEpoch.remainder(100000),
-        channelKey: 'task_channel',
+        channelKey: 'task_alarm_channel',
         title: title,
         body: body,
         notificationLayout: NotificationLayout.Default,
-        criticalAlert: true,
         wakeUpScreen: true,
         fullScreenIntent: true,
         category: NotificationCategory.Alarm,
+        displayOnForeground: true,
+        displayOnBackground: true,
+        autoDismissible: false,
       ),
-      schedule: NotificationCalendar(
-        year: scheduleTime.year,
-        month: scheduleTime.month,
-        day: scheduleTime.day,
-        hour: scheduleTime.hour,
-        minute: scheduleTime.minute,
-        second: 0,
-        millisecond: 0,
-        repeats: false,
-        preciseAlarm: true, // Use exact alarm timing
-        allowWhileIdle: true, // Allow notification when device is idle
+      actionButtons: [
+        NotificationActionButton(
+          key: 'STOP_ALARM',
+          label: 'Stop Alarm',
+          autoDismissible: true,
+          showInCompactView: true,
+        ),
+      ],
+      schedule: NotificationCalendar.fromDate(
+        date: scheduleTime,
+        preciseAlarm: true,
       ),
     );
   }

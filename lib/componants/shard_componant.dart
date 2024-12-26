@@ -121,11 +121,15 @@ Widget buildTaskItem(Map model, BuildContext context) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                model['status'] == 'done' ? 'Task marked as incomplete' : 'Task completed',
+                model['status'] == 'done'
+                    ? 'Task marked as incomplete'
+                    : 'Task completed',
                 style: TextStyle(fontSize: 16.sp),
               ),
               behavior: SnackBarBehavior.floating,
-              backgroundColor: model['status'] == 'done' ? Colors.orange.shade400 : Colors.green.shade400,
+              backgroundColor: model['status'] == 'done'
+                  ? Colors.orange.shade400
+                  : Colors.green.shade400,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10.r),
               ),
@@ -153,15 +157,9 @@ Widget buildTaskItem(Map model, BuildContext context) {
       }
       return false;
     },
-    onDismissed: (direction) async {
+    onDismissed: (direction) {
       if (direction == DismissDirection.endToStart) {
         TodoCubit.get(context).deleteDatabase(model['id']);
-      } else if (direction == DismissDirection.startToEnd) {
-        // Mark as done/undone
-        await TodoCubit.get(context).updateData(
-          id: model['id'],
-          status: model['status'] == 'done' ? 'new' : 'done',
-        );
       }
     },
     background: Container(
@@ -203,7 +201,7 @@ Widget buildTaskItem(Map model, BuildContext context) {
       },
       child: Container(
         padding: EdgeInsets.all(15.r),
-        margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+        margin: EdgeInsets.symmetric(horizontal: 0.w, vertical: 8.h),
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(16.r),
@@ -227,7 +225,7 @@ Widget buildTaskItem(Map model, BuildContext context) {
             ),
             SizedBox(width: 16.w),
             SizedBox(
-              width: MediaQuery.of(context).size.width - 120.w,
+              width: MediaQuery.of(context).size.width - 130.w,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
@@ -463,17 +461,13 @@ Widget buildTasksScreen(context) {
                   Container(
                     margin: EdgeInsets.only(right: 8.w),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? Colors.grey[800]
-                          : Colors.grey[200],
+                      color: Colors.deepOrange.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12.r),
                     ),
                     child: IconButton(
                       icon: Icon(
                         Icons.search_rounded,
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? Colors.white
-                            : Colors.black87,
+                        color: Colors.deepOrange,
                         size: 22.w,
                       ),
                       onPressed: () {
@@ -615,7 +609,7 @@ Widget buildTasksScreen(context) {
             padding: EdgeInsets.symmetric(vertical: 10.h),
             child: Row(
               children: [
-                SizedBox(width: 60.w),
+                const Spacer(),
                 CircleAvatar(
                   radius: 2.r,
                   backgroundColor: Colors.black,
@@ -623,7 +617,7 @@ Widget buildTasksScreen(context) {
                 Container(
                   color: Colors.black,
                   height: 1.5.h,
-                  width: 260.w,
+                  width: 240.w,
                 )
               ],
             ),

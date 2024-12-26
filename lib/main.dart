@@ -8,6 +8,7 @@ import 'package:todo_app/screens/splash_screen.dart';
 import 'package:todo_app/screens/search_screen.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:todo_app/services/notification_service.dart';
+import 'package:flutter/services.dart';
 
 //import 'componants/bloc_observer_class.dart';
 
@@ -179,6 +180,17 @@ class MyApp extends StatelessWidget {
                         ),
                         child: const SearchScreen(),
                       ),
+                },
+                builder: (context, child) {
+                  final isDarkMode = myTheme.brightness == Brightness.dark;
+                  SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+                    statusBarColor: Colors.transparent,
+                    statusBarIconBrightness: isDarkMode ? Brightness.light : Brightness.dark,
+                    statusBarBrightness: isDarkMode ? Brightness.dark : Brightness.light,
+                    systemNavigationBarColor: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
+                    systemNavigationBarIconBrightness: isDarkMode ? Brightness.light : Brightness.dark,
+                  ));
+                  return child!;
                 },
               ),
             );

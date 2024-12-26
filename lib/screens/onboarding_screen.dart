@@ -12,9 +12,12 @@ class OnboardingScreen extends StatefulWidget {
   State<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-class _OnboardingScreenState extends State<OnboardingScreen> {
+class _OnboardingScreenState extends State<OnboardingScreen>
+    with SingleTickerProviderStateMixin {
   final PageController _pageController = PageController();
   bool isLastPage = false;
+  late AnimationController _liquidController;
+  double page = 0;
 
   final List<OnboardingModel> onboardingPages = [
     OnboardingModel(
@@ -36,6 +39,27 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       imagePath: 'assets/images/note.jpg',
     ),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _liquidController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _pageController.addListener(() {
+      setState(() {
+        page = _pageController.page ?? 0;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _liquidController.dispose();
+    _pageController.dispose();
+    super.dispose();
+  }
 
   void _completeOnboarding() async {
     final prefs = await SharedPreferences.getInstance();
@@ -62,58 +86,81 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 });
               },
               itemCount: onboardingPages.length,
+              physics: const CustomPageViewScrollPhysics(),
               itemBuilder: (context, index) {
-                return SingleChildScrollView(
-                  child: Padding(
-                    padding:
-                        EdgeInsets.symmetric(horizontal: 24.w, vertical: 40.h),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Hero(
-                          tag: 'onboarding_image_$index',
-                          child: Container(
-                            height: 280.h,
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(24.r),
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(24.r),
-                              child: Image.asset(
-                                onboardingPages[index].imagePath,
-                                fit: BoxFit.fill,
+                return AnimatedBuilder(
+                  animation: _pageController,
+                  builder: (context, child) {
+                    double page = _pageController.position.haveDimensions
+                        ? _pageController.page ?? 0
+                        : 0;
+
+                    double pageOffset = page - index;
+
+                    return Transform(
+                      alignment: Alignment.center,
+                      transform: Matrix4.identity()
+                        ..setEntry(3, 2, 0.001)
+                        ..rotateY(pageOffset * 0.8)
+                        ..translate(
+                            pageOffset * MediaQuery.of(context).size.width)
+                        ..scale(1.0 - (pageOffset.abs() * 0.2)),
+                      child: Opacity(
+                        opacity: (1 - pageOffset.abs()).clamp(0.0, 1.0),
+                        child: child,
+                      ),
+                    );
+                  },
+                  child: SingleChildScrollView(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                          horizontal: 24.w, vertical: 32.h),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Hero(
+                            tag: 'onboarding_image_$index',
+                            child: Container(
+                              height: 250.h,
+                              width: double.infinity,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(20.r),
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(20.r),
+                                child: Image.asset(
+                                  onboardingPages[index].imagePath,
+                                  fit: BoxFit.fill,
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                        SizedBox(height: 48.h),
-                        Text(
-                          onboardingPages[index].title,
-                          style: TextStyle(
-                            fontSize: 32.sp,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.deepOrange,
-                            height: 1.2,
-                            letterSpacing: 0.5,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        SizedBox(height: 24.h),
-                        Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 16.w),
-                          child: Text(
-                            onboardingPages[index].description,
+                          SizedBox(height: 32.h),
+                          Text(
+                            onboardingPages[index].title,
                             style: TextStyle(
-                              fontSize: 16.sp,
-                              color: Colors.grey[800],
-                              height: 1.6,
-                              letterSpacing: 0.3,
+                              fontSize: 28.sp,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.deepOrange,
+                              height: 1.2,
+                              letterSpacing: 0.5,
                             ),
                             textAlign: TextAlign.center,
                           ),
-                        ),
-                      ],
+                          SizedBox(height: 16.h),
+                          Text(
+                            onboardingPages[index].description,
+                            style: TextStyle(
+                              fontSize: 15.sp,
+                              color: Colors.grey[700],
+                              height: 1.5,
+                              letterSpacing: 0.3,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 );
@@ -123,26 +170,47 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               bottom: 0,
               left: 0,
               right: 0,
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 32.h),
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 24.h),
+                color: Colors.white,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    TextButton(
-                      onPressed: () => _completeOnboarding(),
-                      style: TextButton.styleFrom(
-                        padding: EdgeInsets.symmetric(
-                            horizontal: 24.w, vertical: 14.h),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12.r),
+                    AnimatedOpacity(
+                      duration: const Duration(milliseconds: 300),
+                      opacity: isLastPage ? 0.0 : 1.0,
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        transform: Matrix4.translationValues(
+                          isLastPage ? -50.0 : 0.0,
+                          0.0,
+                          0.0,
                         ),
-                      ),
-                      child: Text(
-                        'Skip',
-                        style: TextStyle(
-                          fontSize: 16.sp,
-                          color: Colors.grey[700],
-                          fontWeight: FontWeight.w600,
+                        child: TextButton.icon(
+                          onPressed:
+                              isLastPage ? null : () => _completeOnboarding(),
+                          style: TextButton.styleFrom(
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 16.w, vertical: 8.h),
+                            backgroundColor: Colors.grey[100],
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20.r),
+                            ),
+                          ),
+                          icon: Icon(
+                            Icons.skip_next_rounded,
+                            color: Colors.deepOrange,
+                            size: 20.sp,
+                          ),
+                          label: Text(
+                            'Skip',
+                            style: TextStyle(
+                              fontSize: 14.sp,
+                              color: Colors.deepOrange,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -160,18 +228,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     ),
                     Container(
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            Colors.deepOrange,
-                            Colors.deepOrange.shade800,
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(12.r),
+                        color: Colors.deepOrange,
+                        shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.deepOrange.shade900.withOpacity(0.3),
+                            color: Colors.deepOrange.withOpacity(0.3),
                             spreadRadius: 0,
                             blurRadius: 12,
                             offset: const Offset(0, 4),
@@ -191,16 +252,27 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                               );
                             }
                           },
-                          borderRadius: BorderRadius.circular(12.r),
+                          customBorder: CircleBorder(),
                           child: Container(
-                            padding: EdgeInsets.symmetric(
-                                horizontal: 32.w, vertical: 14.h),
-                            child: Text(
-                              isLastPage ? 'Get Started' : 'Next',
-                              style: TextStyle(
-                                fontSize: 16.sp,
-                                fontWeight: FontWeight.w600,
+                            padding: EdgeInsets.all(16.w),
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 300),
+                              transitionBuilder: (child, animation) {
+                                return RotationTransition(
+                                  turns: animation,
+                                  child: ScaleTransition(
+                                    scale: animation,
+                                    child: child,
+                                  ),
+                                );
+                              },
+                              child: Icon(
+                                isLastPage
+                                    ? Icons.check_rounded
+                                    : Icons.chevron_right_rounded,
+                                key: ValueKey<bool>(isLastPage),
                                 color: Colors.white,
+                                size: 28.sp,
                               ),
                             ),
                           ),
@@ -216,4 +288,21 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       ),
     );
   }
+}
+
+class CustomPageViewScrollPhysics extends ScrollPhysics {
+  const CustomPageViewScrollPhysics({ScrollPhysics? parent})
+      : super(parent: parent);
+
+  @override
+  CustomPageViewScrollPhysics applyTo(ScrollPhysics? ancestor) {
+    return CustomPageViewScrollPhysics(parent: buildParent(ancestor));
+  }
+
+  @override
+  SpringDescription get spring => const SpringDescription(
+        mass: 80,
+        stiffness: 100,
+        damping: 1,
+      );
 }

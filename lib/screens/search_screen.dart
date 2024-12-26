@@ -4,9 +4,10 @@ import 'package:todo_app/screens/task_detail_screen.dart';
 import '../cubit/search/search_cubit.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:shimmer/shimmer.dart';
+import 'dart:async';
 
 class SearchScreen extends StatefulWidget {
-  const SearchScreen({Key? key}) : super(key: key);
+  const SearchScreen({super.key});
 
   @override
   State<SearchScreen> createState() => _SearchScreenState();
@@ -17,7 +18,20 @@ class _SearchScreenState extends State<SearchScreen>
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
   final _scrollController = ScrollController();
+  final _searchController = TextEditingController();
   bool _showScrollToTop = false;
+  Timer? _messageTimer;
+  int _currentMessageIndex = 0;
+  bool _isScrolling = false;
+  Timer? _scrollDebouncer;
+
+  final List<String> _encouragingMessages = [
+    "Let's try something else! Maybe...",
+    "Don't worry, we can find it! Try...",
+    "No luck yet, but how about...",
+    "Time for a different approach! Try...",
+    "Nothing here, but let's try...",
+  ];
 
   @override
   void initState() {
@@ -31,18 +45,69 @@ class _SearchScreenState extends State<SearchScreen>
     );
     _controller.forward();
 
-    _scrollController.addListener(() {
-      setState(() {
-        _showScrollToTop = _scrollController.offset > 200;
-      });
+    _scrollController.addListener(_handleScroll);
+
+    // Start the timer for message rotation
+    _startMessageTimer();
+  }
+
+  void _handleScroll() {
+    final isNowScrolling = _scrollController.position.isScrollingNotifier.value;
+
+    setState(() {
+      _showScrollToTop = _scrollController.offset > 200;
     });
+
+    if (isNowScrolling && !_isScrolling) {
+      // Started scrolling
+      _isScrolling = true;
+      _pauseMessageTimer();
+    } else if (!isNowScrolling && _isScrolling) {
+      // Stopped scrolling
+      _scrollDebouncer?.cancel();
+      _scrollDebouncer = Timer(const Duration(milliseconds: 500), () {
+        if (mounted) {
+          setState(() {
+            _isScrolling = false;
+          });
+          _startMessageTimer();
+        }
+      });
+    }
   }
 
   @override
   void dispose() {
     _controller.dispose();
     _scrollController.dispose();
+    _searchController.dispose();
+    _messageTimer?.cancel();
+    _scrollDebouncer?.cancel();
     super.dispose();
+  }
+
+  void _pauseMessageTimer() {
+    _messageTimer?.cancel();
+  }
+
+  void _startMessageTimer() {
+    if (_isScrolling) return;
+
+    _messageTimer?.cancel();
+    _messageTimer = Timer.periodic(const Duration(minutes: 1), (timer) {
+      if (mounted && !_isScrolling) {
+        setState(() {
+          _currentMessageIndex =
+              (_currentMessageIndex + 1) % _encouragingMessages.length;
+        });
+      } else {
+        timer.cancel();
+      }
+    });
+  }
+
+  String getEncouragingMessage() {
+    return _encouragingMessages[_currentMessageIndex];
   }
 
   @override
@@ -136,64 +201,91 @@ class _SearchScreenState extends State<SearchScreen>
                                         color: Theme.of(context).brightness ==
                                                 Brightness.dark
                                             ? Colors.grey[800]!.withOpacity(0.5)
-                                            : Colors.white.withOpacity(0.8),
+                                            : Colors.white.withOpacity(0.9),
                                         borderRadius:
-                                            BorderRadius.circular(12.r),
+                                            BorderRadius.circular(15.r),
                                         boxShadow: [
                                           BoxShadow(
-                                            color:
-                                                Colors.black.withOpacity(0.05),
+                                            color: Theme.of(context)
+                                                .primaryColor
+                                                .withOpacity(0.1),
                                             blurRadius: 10,
-                                            offset: const Offset(0, 4),
+                                            offset: const Offset(0, 3),
                                           ),
                                         ],
                                       ),
-                                      padding: EdgeInsets.symmetric(
-                                          horizontal: 16.w, vertical: 8.h),
-                                      child: Row(
-                                        children: [
-                                          Icon(
-                                            Icons.search_rounded,
+                                      child: TextField(
+                                        controller: _searchController,
+                                        onChanged: (value) {
+                                          context
+                                              .read<SearchCubit>()
+                                              .searchTasks(value);
+                                        },
+                                        style: TextStyle(
+                                          fontSize: 16.sp,
+                                          color: Theme.of(context).brightness ==
+                                                  Brightness.dark
+                                              ? Colors.white
+                                              : Colors.black87,
+                                        ),
+                                        decoration: InputDecoration(
+                                          hintText: 'Search tasks...',
+                                          hintStyle: TextStyle(
                                             color:
                                                 Theme.of(context).brightness ==
                                                         Brightness.dark
                                                     ? Colors.grey[400]
                                                     : Colors.grey[600],
-                                            size: 20.w,
+                                            fontSize: 16.sp,
                                           ),
-                                          SizedBox(width: 12.w),
-                                          Expanded(
-                                            child: TextField(
-                                              onChanged: (query) {
-                                                context
-                                                    .read<SearchCubit>()
-                                                    .searchTasks(query);
-                                              },
-                                              style: TextStyle(
-                                                fontSize: 16.sp,
-                                                color: Theme.of(context)
-                                                            .brightness ==
-                                                        Brightness.dark
-                                                    ? Colors.white
-                                                    : Colors.black87,
-                                              ),
-                                              decoration: InputDecoration(
-                                                hintText: 'Search tasks...',
-                                                hintStyle: TextStyle(
-                                                  color: Theme.of(context)
-                                                              .brightness ==
-                                                          Brightness.dark
-                                                      ? Colors.grey[400]
-                                                      : Colors.grey[600],
-                                                  fontSize: 16.sp,
-                                                ),
-                                                border: InputBorder.none,
-                                                isDense: true,
-                                                contentPadding: EdgeInsets.zero,
-                                              ),
-                                            ),
+                                          prefixIcon: BlocBuilder<SearchCubit,
+                                              SearchState>(
+                                            builder: (context, state) {
+                                              return Icon(
+                                                Icons.search_rounded,
+                                                color: Colors.deepOrange,
+                                                size: 22.w,
+                                              );
+                                            },
                                           ),
-                                        ],
+                                          suffixIcon: BlocBuilder<SearchCubit,
+                                              SearchState>(
+                                            builder: (context, state) {
+                                              return AnimatedSwitcher(
+                                                duration: const Duration(
+                                                    milliseconds: 200),
+                                                child: state.query.isNotEmpty
+                                                    ? IconButton(
+                                                        icon: Icon(
+                                                          Icons.clear_rounded,
+                                                          color: Theme.of(context)
+                                                                      .brightness ==
+                                                                  Brightness
+                                                                      .dark
+                                                              ? Colors.grey[300]
+                                                              : Colors
+                                                                  .grey[600],
+                                                          size: 20.w,
+                                                        ),
+                                                        onPressed: () {
+                                                          _searchController
+                                                              .clear();
+                                                          context
+                                                              .read<
+                                                                  SearchCubit>()
+                                                              .clearSearch();
+                                                        },
+                                                      )
+                                                    : const SizedBox.shrink(),
+                                              );
+                                            },
+                                          ),
+                                          border: InputBorder.none,
+                                          contentPadding: EdgeInsets.symmetric(
+                                            horizontal: 16.w,
+                                            vertical: 12.h,
+                                          ),
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -228,13 +320,13 @@ class _SearchScreenState extends State<SearchScreen>
                             'An error occurred',
                           ),
                         );
-                      } else if (state is SearchLoaded &&
-                          state.results.isEmpty) {
+                      } else if (state is SearchNoResults ||
+                          (state is SearchLoaded && state.results.isEmpty)) {
                         return SliverFillRemaining(
                           child: _buildEmptyState(
                             context,
                             Icons.search_off_rounded,
-                            'No tasks found',
+                            'Oops! Nothing Found ',
                           ),
                         );
                       } else if (state is SearchLoaded) {
@@ -276,8 +368,8 @@ class _SearchScreenState extends State<SearchScreen>
           ),
           if (_showScrollToTop)
             Positioned(
-              right: 16.w,
-              bottom: 16.h,
+              right: 16.0.w,
+              bottom: 16.0.h,
               child: AnimatedOpacity(
                 duration: const Duration(milliseconds: 200),
                 opacity: _showScrollToTop ? 1.0 : 0.0,
@@ -345,43 +437,289 @@ class _SearchScreenState extends State<SearchScreen>
   }
 
   Widget _buildEmptyState(BuildContext context, IconData icon, String message) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = Theme.of(context).primaryColor;
+
+    // Create a gradient color for dark mode
+    final darkGradientColors = [
+      HSLColor.fromColor(primaryColor).withLightness(0.3).toColor(),
+      HSLColor.fromColor(primaryColor).withLightness(0.2).toColor(),
+    ];
+
+    // Get a random encouraging message
+    String getEncouragingMessage() {
+      return _encouragingMessages[_currentMessageIndex];
+    }
+
+    // Get random search suggestions
+    List<String> getSearchSuggestions() {
+      final suggestions = [
+        ['important', 'urgent'],
+        ['today', 'tomorrow'],
+        ['work', 'personal'],
+        ['meeting', 'call'],
+        ['project', 'task'],
+      ];
+      return suggestions[DateTime.now().millisecond % suggestions.length];
+    }
+
+    final searchSuggestions = getSearchSuggestions();
+
     return TweenAnimationBuilder<double>(
-      duration: const Duration(milliseconds: 400),
-      tween: Tween(begin: 0.0, end: 1.0),
-      builder: (context, value, child) {
-        return Transform.scale(
-          scale: 0.8 + (0.2 * value),
-          child: Opacity(
-            opacity: value,
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    icon,
-                    size: 80.sp,
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? Colors.white24
-                        : Colors.black12,
+        duration: const Duration(milliseconds: 600),
+        tween: Tween(begin: 0.0, end: 1.0),
+        builder: (context, value, child) {
+          return Transform.scale(
+            scale: 0.8 + (0.2 * value),
+            child: Opacity(
+              opacity: value,
+              child: Center(
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 32.w),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TweenAnimationBuilder<double>(
+                        duration: const Duration(milliseconds: 800),
+                        tween: Tween(begin: 0.0, end: 1.0),
+                        builder: (context, value, child) {
+                          return Transform.translate(
+                            offset: Offset(0, 20 * (1 - value)),
+                            child: Container(
+                              padding: EdgeInsets.all(28.r),
+                              decoration: BoxDecoration(
+                                gradient: isDark
+                                    ? LinearGradient(
+                                        colors: darkGradientColors,
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      )
+                                    : null,
+                                color: isDark
+                                    ? null
+                                    : Colors.grey[100]!.withOpacity(0.7),
+                                shape: BoxShape.circle,
+                                boxShadow: isDark
+                                    ? [
+                                        BoxShadow(
+                                          color: primaryColor.withOpacity(0.2),
+                                          blurRadius: 25,
+                                          spreadRadius: 1,
+                                        ),
+                                        const BoxShadow(
+                                          color: Colors.black26,
+                                          blurRadius: 15,
+                                          spreadRadius: 2,
+                                          offset: Offset(0, 4),
+                                        ),
+                                      ]
+                                    : [],
+                              ),
+                              child: Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  if (message.contains('No tasks found'))
+                                    ...List.generate(3, (index) {
+                                      return TweenAnimationBuilder<double>(
+                                        duration: Duration(
+                                            milliseconds: 1500 + (index * 200)),
+                                        tween: Tween(begin: 0.4, end: 0.8),
+                                        curve: Curves.easeInOut,
+                                        builder: (context, value, child) {
+                                          return Transform.scale(
+                                            scale: value,
+                                            child: Container(
+                                              width: (80 + (index * 20)).w,
+                                              height: (80 + (index * 20)).h,
+                                              decoration: BoxDecoration(
+                                                shape: BoxShape.circle,
+                                                border: Border.all(
+                                                  color: isDark
+                                                      ? primaryColor
+                                                          .withOpacity(0.1 +
+                                                              (index * 0.05))
+                                                      : primaryColor
+                                                          .withOpacity(0.1),
+                                                  width: isDark ? 2.5 : 2,
+                                                ),
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      );
+                                    }).reversed,
+                                  Icon(
+                                    icon,
+                                    size: 64.sp,
+                                    color: isDark
+                                        ? Colors.white.withOpacity(0.9)
+                                        : primaryColor.withOpacity(0.8),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      SizedBox(height: 32.h),
+                      TweenAnimationBuilder<double>(
+                        duration: const Duration(milliseconds: 800),
+                        tween: Tween(begin: 0.0, end: 1.0),
+                        builder: (context, value, child) {
+                          return Transform.translate(
+                            offset: Offset(0, 30 * (1 - value)),
+                            child: Opacity(
+                              opacity: value,
+                              child: Column(
+                                children: [
+                                  Text(
+                                    message,
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: 20.sp,
+                                      fontWeight: FontWeight.w600,
+                                      color: isDark
+                                          ? Colors.white
+                                          : Colors.black87,
+                                      letterSpacing: 0.5,
+                                      shadows: isDark
+                                          ? [
+                                              const Shadow(
+                                                color: Colors.black38,
+                                                offset: Offset(0, 2),
+                                                blurRadius: 4,
+                                              ),
+                                            ]
+                                          : null,
+                                    ),
+                                  ),
+                                  if (message.contains('Nothing Found')) ...[
+                                    SizedBox(height: 12.h),
+                                    Text(
+                                      getEncouragingMessage(),
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontSize: 15.sp,
+                                        color: isDark
+                                            ? Colors.white.withOpacity(0.7)
+                                            : Colors.black45,
+                                        letterSpacing: 0.3,
+                                      ),
+                                    ),
+                                    SizedBox(height: 24.h),
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: searchSuggestions
+                                          .map(
+                                            (suggestion) => Padding(
+                                              padding: EdgeInsets.symmetric(
+                                                  horizontal: 4.w),
+                                              child: Container(
+                                                padding: EdgeInsets.symmetric(
+                                                  horizontal: 16.w,
+                                                  vertical: 10.h,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  gradient: isDark
+                                                      ? LinearGradient(
+                                                          colors: [
+                                                            primaryColor
+                                                                .withOpacity(
+                                                                    0.2),
+                                                            primaryColor
+                                                                .withOpacity(
+                                                                    0.15),
+                                                          ],
+                                                          begin:
+                                                              Alignment.topLeft,
+                                                          end: Alignment
+                                                              .bottomRight,
+                                                        )
+                                                      : null,
+                                                  color: isDark
+                                                      ? null
+                                                      : Colors.grey[100],
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                          12.r),
+                                                  border: Border.all(
+                                                    color: isDark
+                                                        ? primaryColor
+                                                            .withOpacity(0.3)
+                                                        : primaryColor
+                                                            .withOpacity(0.2),
+                                                    width: isDark ? 1.5 : 1,
+                                                  ),
+                                                  boxShadow: isDark
+                                                      ? [
+                                                          BoxShadow(
+                                                            color:
+                                                                Colors.black26,
+                                                            blurRadius: 8,
+                                                            offset:
+                                                                Offset(0, 2),
+                                                          ),
+                                                        ]
+                                                      : null,
+                                                ),
+                                                child: Row(
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
+                                                  children: [
+                                                    Icon(
+                                                      suggestion ==
+                                                              searchSuggestions
+                                                                  .first
+                                                          ? Icons
+                                                              .star_outline_rounded
+                                                          : Icons
+                                                              .schedule_rounded,
+                                                      size: 18.sp,
+                                                      color: isDark
+                                                          ? Colors.white
+                                                              .withOpacity(0.9)
+                                                          : primaryColor
+                                                              .withOpacity(0.7),
+                                                    ),
+                                                    SizedBox(width: 8.w),
+                                                    Text(
+                                                      '"$suggestion"',
+                                                      style: TextStyle(
+                                                        fontSize: 13.sp,
+                                                        color: isDark
+                                                            ? Colors.white
+                                                                .withOpacity(
+                                                                    0.9)
+                                                            : Colors.black54,
+                                                        fontWeight: isDark
+                                                            ? FontWeight.w500
+                                                            : FontWeight.normal,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                          )
+                                          .toList(),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      SizedBox(height: 32.h),
+                    ],
                   ),
-                  SizedBox(height: 16.h),
-                  Text(
-                    message,
-                    style: TextStyle(
-                      fontSize: 16.sp,
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? Colors.white38
-                          : Colors.black38,
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
-          ),
-        );
-      },
-    );
+          );
+        });
   }
 
   Widget _buildLoadingState() {

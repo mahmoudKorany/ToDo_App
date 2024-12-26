@@ -23,6 +23,7 @@ class TodoCubit extends Cubit<TodoStates> {
   Database? database;
   List<Map<String, dynamic>> tasks = [];
   List<Map<String, dynamic>> doneTasks = [];
+  List<Map<String, dynamic>> filteredTasks = [];
 
   void CreateDB() {
     openDatabase('todo.db', version: 3, onCreate: (db, version) {
@@ -240,8 +241,6 @@ class TodoCubit extends Cubit<TodoStates> {
       emit(UpdateTaskErrorState());
     }
   }
-
-  List<Map<String, dynamic>> filteredTasks = [];
 
   void filterTasksByPriority(String priority) {
     emit(FilterTasksLoadingState());
