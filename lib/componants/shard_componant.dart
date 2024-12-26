@@ -129,7 +129,7 @@ Widget buildTaskItem(Map model, BuildContext context) {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10.r),
               ),
-              duration: Duration(seconds: 2),
+              duration: const Duration(seconds: 2),
             ),
           );
           return true;
@@ -145,7 +145,7 @@ Widget buildTaskItem(Map model, BuildContext context) {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10.r),
               ),
-              duration: Duration(seconds: 2),
+              duration: const Duration(seconds: 2),
             ),
           );
           return false;
@@ -390,15 +390,15 @@ Future<bool?> showDeleteConfirmationDialog(BuildContext context) {
           const Text('Delete Task'),
         ],
       ),
-      content: Text('Are you sure you want to delete this task?'),
+      content: const Text('Are you sure you want to delete this task?'),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context, false),
-          child: Text('Cancel'),
+          child: const Text('Cancel'),
         ),
         TextButton(
           onPressed: () => Navigator.pop(context, true),
-          child: Text(
+          child: const Text(
             'Delete',
             style: TextStyle(color: Colors.red),
           ),
@@ -532,6 +532,9 @@ Widget buildTasksScreen(context) {
                           size: 22.w,
                         ),
                         onPressed: () async {
+                          final todoCubit = TodoCubit.get(context);
+                          todoCubit.fabIcon = Icons.edit;
+                          todoCubit.isBottomSheetShown = false;
                           final switcher = ThemeSwitcher.of(context);
                           final prefs = await SharedPreferences.getInstance();
                           final isDark =
@@ -582,7 +585,7 @@ Widget buildTasksScreen(context) {
                 SizedBox(width: 8.w),
                 Text(
                   currentDay,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontWeight: FontWeight.w500,
                     color: Colors.deepOrange,
                   ),

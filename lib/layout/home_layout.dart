@@ -11,10 +11,9 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:todo_app/widgets/custom_bottom_nav.dart';
 
 class HomeScreen extends StatelessWidget {
-  HomeScreen({Key? key}) : super(key: key);
+  HomeScreen({super.key});
 
-  final scaffoldKey = GlobalKey<ScaffoldState>();
-  final formkey = GlobalKey<FormState>();
+  final formKey = GlobalKey<FormState>();
 
   final titleController = TextEditingController();
   final timeController = TextEditingController();
@@ -38,7 +37,6 @@ class HomeScreen extends StatelessWidget {
         TodoCubit todoCubit = TodoCubit.get(context);
         return ThemeSwitchingArea(
           child: Scaffold(
-            key: scaffoldKey,
             backgroundColor: Theme.of(context).scaffoldBackgroundColor,
             floatingActionButton:
                 _buildFloatingActionButton(context, todoCubit),
@@ -86,7 +84,7 @@ class HomeScreen extends StatelessWidget {
   }
 
   void _handleFormSubmission(BuildContext context, TodoCubit todoCubit) {
-    if (formkey.currentState!.validate()) {
+    if (formKey.currentState!.validate()) {
       todoCubit.InsertDB(
         title: titleController.text,
         time: timeController.text,
@@ -100,16 +98,18 @@ class HomeScreen extends StatelessWidget {
   }
 
   void _showAddTaskBottomSheet(BuildContext context, TodoCubit todoCubit) {
-    scaffoldKey.currentState
-        ?.showBottomSheet(
-          (context) => StatefulBuilder(
-            builder: (context, setState) =>
-                _buildBottomSheetContent(context, setState, todoCubit),
-          ),
-          backgroundColor: Colors.transparent,
-        )
-        .closed
-        .then((value) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.85,
+      ),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) =>
+            _buildBottomSheetContent(context, setState, todoCubit),
+      ),
+    ).then((_) {
       todoCubit.changeBottomSheetSt(isShow: false, icon: Icons.edit);
       titleController.clear();
       timeController.clear();
@@ -133,37 +133,39 @@ class HomeScreen extends StatelessWidget {
           ),
         ],
       ),
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-        top: 20.h,
-        left: 20.w,
-        right: 20.w,
-      ),
-      child: Form(
-        key: formkey,
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          child: Container(
-            constraints: BoxConstraints(
-              maxHeight: MediaQuery.of(context).size.height * 0.8,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildBottomSheetHeader(),
-                SizedBox(height: 20.h),
-                _buildTitleField(context),
-                SizedBox(height: 15.h),
-                _buildDetailsField(context),
-                SizedBox(height: 15.h),
-                _buildTimeField(context, setState),
-                SizedBox(height: 15.h),
-                _buildDateField(context, setState),
-                SizedBox(height: 15.h),
-                _buildPrioritySection(context, todoCubit, setState),
-                SizedBox(height: 20.h),
-              ],
+      child: SafeArea(
+        child: Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            top: 20.h,
+            left: 20.w,
+            right: 20.w,
+          ),
+          child: Form(
+            key: formKey,
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildBottomSheetHeader(),
+                  SizedBox(height: 20.h),
+                  _buildTitleField(context),
+                  SizedBox(height: 15.h),
+                  _buildDetailsField(context),
+                  SizedBox(height: 15.h),
+                  _buildTimeField(context, setState),
+                  SizedBox(height: 15.h),
+                  _buildDateField(context, setState),
+                  SizedBox(height: 15.h),
+                  _buildPrioritySection(context, todoCubit, setState),
+                  SizedBox(height: 20.h),
+                  _buildAddTaskButton(context, todoCubit),
+                  SizedBox(
+                      height: MediaQuery.of(context).padding.bottom + 10.h),
+                ],
+              ),
             ),
           ),
         ),
@@ -364,6 +366,59 @@ class HomeScreen extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAddTaskButton(BuildContext context, TodoCubit todoCubit) {
+    return Container(
+      width: double.infinity,
+      height: 56.h,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Colors.deepOrange,
+            Colors.deepOrange.shade700,
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.deepOrange.withOpacity(0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16.r),
+          onTap: () => _handleFormSubmission(context, todoCubit),
+          child: Center(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.add_task_rounded,
+                  color: Colors.white,
+                  size: 24.sp,
+                ),
+                SizedBox(width: 8.w),
+                Text(
+                  'Add Task',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

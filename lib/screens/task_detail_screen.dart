@@ -38,9 +38,13 @@ class _TaskDetailScreenState extends State<TaskDetailScreen>
     dateController = TextEditingController(text: currentTask['date']);
     timeController = TextEditingController(text: currentTask['time']);
 
+    // Set the priority from the task or default to 'medium'
+    final todoCubit = TodoCubit.get(context);
+    todoCubit.changePriority(currentTask['priority'] ?? 'medium');
+
     _animationController = AnimationController(
       vsync: this,
-      duration: Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 800),
     );
 
     _fadeAnimation = Tween<double>(
@@ -54,7 +58,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen>
     );
 
     _slideAnimation = Tween<Offset>(
-      begin: Offset(0.0, 0.3),
+      begin: const Offset(0.0, 0.3),
       end: Offset.zero,
     ).animate(
       CurvedAnimation(
@@ -87,7 +91,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen>
       builder: (context, state) {
         return Scaffold(
           backgroundColor: Theme.of(context).brightness == Brightness.dark
-              ? Color(0xFF1A1A1A)
+              ? const Color(0xFF1A1A1A)
               : Theme.of(context).scaffoldBackgroundColor,
           floatingActionButton: Container(
             decoration: BoxDecoration(
@@ -123,7 +127,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen>
             padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
             decoration: BoxDecoration(
               color: Theme.of(context).brightness == Brightness.dark
-                  ? Color(0xFF2D2D2D)
+                  ? const Color(0xFF2D2D2D)
                   : Theme.of(context).cardColor,
               boxShadow: [
                 BoxShadow(
@@ -185,76 +189,53 @@ class _TaskDetailScreenState extends State<TaskDetailScreen>
 
                       scaffoldMessenger.showSnackBar(
                         SnackBar(
-                          content: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  newStatus == 'done'
-                                      ? 'Task marked as complete'
-                                      : 'Task marked as incomplete',
-                                  style: TextStyle(
-                                    fontSize: 16.sp,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ),
-                              TextButton(
-                                onPressed: () {
-                                  // Undo the status change
-                                  final originalStatus =
-                                      newStatus == 'done' ? 'new' : 'done';
-                                  todoCubit
-                                      .updateTaskStatus(
-                                    id: currentTask['id'],
-                                    status: originalStatus,
-                                  )
-                                      .then((_) {
-                                    if (mounted) {
-                                      setState(() {
-                                        currentTask['status'] = originalStatus;
-                                      });
-                                    }
-                                    scaffoldMessenger.hideCurrentSnackBar();
-                                  });
-                                },
-                                style: TextButton.styleFrom(
-                                  padding:
-                                      EdgeInsets.symmetric(horizontal: 8.w),
-                                  tapTargetSize:
-                                      MaterialTapTargetSize.shrinkWrap,
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.undo_rounded,
-                                      color: Colors.white,
-                                      size: 20.w,
-                                    ),
-                                    SizedBox(width: 4.w),
-                                    Text(
-                                      'UNDO',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 14.sp,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
+                          content: Text(
+                            newStatus == 'done'
+                                ? 'Task marked as complete'
+                                : 'Task marked as incomplete',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14.sp,
+                            ),
                           ),
-                          backgroundColor: newStatus == 'done'
-                              ? Colors.green.shade600
-                              : Colors.orange.shade600,
+                          backgroundColor:
+                              Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.grey[800]
+                                  : Colors.black87,
+                          action: SnackBarAction(
+                            label: 'Undo',
+                            textColor: Colors.deepOrange,
+                            onPressed: () {
+                              final previousStatus =
+                                  newStatus == 'done' ? 'new' : 'done';
+                              todoCubit
+                                  .updateTaskStatus(
+                                id: currentTask['id'],
+                                status: previousStatus,
+                              )
+                                  .then((_) {
+                                if (mounted) {
+                                  setState(() {
+                                    currentTask['status'] = previousStatus;
+                                  });
+                                }
+                              });
+                            },
+                          ),
                           behavior: SnackBarBehavior.floating,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12.r),
                           ),
-                          margin: EdgeInsets.all(16.w),
+                          margin: EdgeInsets.only(
+                            bottom: 20.h,
+                            left: 16.w,
+                            right: 16.w,
+                          ),
                           duration: const Duration(seconds: 3),
-                          elevation: 4,
+                          elevation:
+                              Theme.of(context).brightness == Brightness.dark
+                                  ? 4
+                                  : 2,
                         ),
                       );
                     });
@@ -295,10 +276,10 @@ class _TaskDetailScreenState extends State<TaskDetailScreen>
                 gradient: LinearGradient(
                   colors: [
                     Theme.of(context).brightness == Brightness.dark
-                        ? Color(0xFF2D2D2D)
+                        ? const Color(0xFF2D2D2D)
                         : Colors.deepOrange.shade400,
                     Theme.of(context).brightness == Brightness.dark
-                        ? Color(0xFF1A1A1A)
+                        ? const Color(0xFF1A1A1A)
                         : Colors.deepOrange.shade300,
                   ],
                   begin: Alignment.topLeft,
@@ -307,7 +288,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen>
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.1),
-                    offset: Offset(0, 2),
+                    offset: const Offset(0, 2),
                     blurRadius: 12,
                   ),
                 ],
@@ -324,7 +305,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen>
                 shadows: [
                   Shadow(
                     color: Colors.black.withOpacity(0.2),
-                    offset: Offset(0, 1),
+                    offset: const Offset(0, 1),
                     blurRadius: 2,
                   ),
                 ],
@@ -360,7 +341,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen>
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.1),
-                      offset: Offset(0, 2),
+                      offset: const Offset(0, 2),
                       blurRadius: 4,
                     ),
                   ],
@@ -398,10 +379,10 @@ class _TaskDetailScreenState extends State<TaskDetailScreen>
                         gradient: LinearGradient(
                           colors: [
                             Theme.of(context).brightness == Brightness.dark
-                                ? Color(0xFF2D2D2D)
+                                ? const Color(0xFF2D2D2D)
                                 : Theme.of(context).cardColor,
                             Theme.of(context).brightness == Brightness.dark
-                                ? Color(0xFF252525)
+                                ? const Color(0xFF252525)
                                 : Theme.of(context).cardColor.withOpacity(0.95),
                           ],
                           begin: Alignment.topLeft,
@@ -426,13 +407,13 @@ class _TaskDetailScreenState extends State<TaskDetailScreen>
                                 colors: [
                                   Theme.of(context).brightness ==
                                           Brightness.dark
-                                      ? Color(0xFF2D2D2D)
+                                      ? const Color(0xFF2D2D2D)
                                       : Theme.of(context)
                                           .primaryColor
                                           .withOpacity(0.1),
                                   Theme.of(context).brightness ==
                                           Brightness.dark
-                                      ? Color(0xFF252525)
+                                      ? const Color(0xFF252525)
                                       : Theme.of(context)
                                           .primaryColor
                                           .withOpacity(0.05),
@@ -554,7 +535,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen>
                                     decoration: BoxDecoration(
                                       color: Theme.of(context).brightness ==
                                               Brightness.dark
-                                          ? Color(0xFF2D2D2D)
+                                          ? const Color(0xFF2D2D2D)
                                           : Theme.of(context)
                                               .cardColor
                                               .withOpacity(0.5),
@@ -637,9 +618,9 @@ class _TaskDetailScreenState extends State<TaskDetailScreen>
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            isDark ? Color(0xFF2D2D2D) : Theme.of(context).cardColor,
+            isDark ? const Color(0xFF2D2D2D) : Theme.of(context).cardColor,
             isDark
-                ? Color(0xFF252525)
+                ? const Color(0xFF252525)
                 : Theme.of(context).cardColor.withOpacity(0.95),
           ],
           begin: Alignment.topLeft,
@@ -730,7 +711,6 @@ class _TaskDetailScreenState extends State<TaskDetailScreen>
     detailsController.text = currentTask['details'] ?? '';
     dateController.text = currentTask['date'];
     timeController.text = currentTask['time'];
-    String selectedPriority = currentTask['priority'] ?? 'medium';
 
     showModalBottomSheet(
       context: context,
@@ -743,7 +723,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen>
           ),
           decoration: BoxDecoration(
             color: Theme.of(context).brightness == Brightness.dark
-                ? Color(0xFF1A1A1A)
+                ? const Color(0xFF1A1A1A)
                 : Theme.of(context).scaffoldBackgroundColor,
             borderRadius: BorderRadius.vertical(
               top: Radius.circular(20.r),
@@ -877,68 +857,8 @@ class _TaskDetailScreenState extends State<TaskDetailScreen>
                       ),
                     ),
                     SizedBox(height: 16.h),
-                    Container(
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? Color(0xFF2D2D2D)
-                            : Theme.of(context).cardColor,
-                        borderRadius: BorderRadius.circular(16.r),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Priority',
-                            style: TextStyle(
-                              fontSize: 16.sp,
-                              fontWeight: FontWeight.w500,
-                              color: Theme.of(context).brightness ==
-                                      Brightness.dark
-                                  ? Colors.white
-                                  : Colors.grey[600],
-                            ),
-                          ),
-                          SizedBox(height: 8.h),
-                          Row(
-                            children: [
-                              _buildPriorityOption(
-                                context,
-                                'High',
-                                Colors.red,
-                                selectedPriority == 'high',
-                                () => setState(() => selectedPriority = 'high'),
-                              ),
-                              SizedBox(width: 8.w),
-                              _buildPriorityOption(
-                                context,
-                                'Medium',
-                                Colors.orange,
-                                selectedPriority == 'medium',
-                                () =>
-                                    setState(() => selectedPriority = 'medium'),
-                              ),
-                              SizedBox(width: 8.w),
-                              _buildPriorityOption(
-                                context,
-                                'Low',
-                                Colors.green,
-                                selectedPriority == 'low',
-                                () => setState(() => selectedPriority = 'low'),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
+                    _buildPrioritySection(
+                        context, TodoCubit.get(context), setState),
                     SizedBox(height: 20.h),
                     SizedBox(
                       width: double.infinity,
@@ -958,14 +878,15 @@ class _TaskDetailScreenState extends State<TaskDetailScreen>
                               details: detailsController.text,
                               date: dateController.text,
                               time: timeController.text,
-                              priority: selectedPriority,
+                              priority: TodoCubit.get(context).selectedPriority,
                             );
                             setState(() {
                               currentTask['title'] = titleController.text;
                               currentTask['details'] = detailsController.text;
                               currentTask['date'] = dateController.text;
                               currentTask['time'] = timeController.text;
-                              currentTask['priority'] = selectedPriority;
+                              currentTask['priority'] =
+                                  TodoCubit.get(context).selectedPriority;
                             });
                             Navigator.pop(context);
                           }
@@ -990,6 +911,85 @@ class _TaskDetailScreenState extends State<TaskDetailScreen>
     );
   }
 
+  Widget _buildPrioritySection(
+      BuildContext context, TodoCubit todoCubit, StateSetter setState) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final currentPriority = todoCubit.selectedPriority.toLowerCase();
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF2D2D2D) : Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(12.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.3 : 0.1),
+            blurRadius: isDark ? 8 : 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Priority',
+            style: TextStyle(
+              fontSize: 16.sp,
+              fontWeight: FontWeight.w600,
+              color: Theme.of(context).textTheme.titleLarge?.color,
+            ),
+          ),
+          SizedBox(height: 12.h),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                _buildPriorityOption(
+                  context,
+                  'Low',
+                  _getPriorityColor('low'),
+                  currentPriority == 'low',
+                  () {
+                    setState(() {
+                      todoCubit.changePriority('low');
+                    });
+                  },
+                ),
+                SizedBox(width: 12.w),
+                _buildPriorityOption(
+                  context,
+                  'Medium',
+                  _getPriorityColor('medium'),
+                  currentPriority == 'medium' || currentPriority == 'meduim',
+                  () {
+                    setState(() {
+                      todoCubit.changePriority('medium');
+                    });
+                  },
+                ),
+                SizedBox(width: 12.w),
+                _buildPriorityOption(
+                  context,
+                  'High',
+                  _getPriorityColor('high'),
+                  currentPriority == 'high',
+                  () {
+                    setState(() {
+                      todoCubit.changePriority('high');
+                    });
+                  },
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildPriorityOption(
     BuildContext context,
     String label,
@@ -997,25 +997,45 @@ class _TaskDetailScreenState extends State<TaskDetailScreen>
     bool isSelected,
     VoidCallback onPressed,
   ) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return GestureDetector(
       onTap: onPressed,
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
         decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.1) : Colors.transparent,
-          borderRadius: BorderRadius.circular(16.r),
+          color: isSelected
+              ? color.withOpacity(isDark ? 0.2 : 0.1)
+              : Colors.transparent,
           border: Border.all(
-            color: isSelected ? color : Colors.grey[300]!,
+            color: isSelected
+                ? color
+                : Colors.grey.withOpacity(isDark ? 0.4 : 0.3),
             width: 1,
           ),
+          borderRadius: BorderRadius.circular(8.r),
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 14.sp,
-            fontWeight: FontWeight.w500,
-            color: isSelected ? color : Colors.grey[600],
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.flag_rounded,
+              size: 16.sp,
+              color: isSelected
+                  ? color
+                  : Colors.grey.withOpacity(isDark ? 0.7 : 0.6),
+            ),
+            SizedBox(width: 4.w),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected
+                    ? color
+                    : Colors.grey.withOpacity(isDark ? 0.7 : 0.6),
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -1049,15 +1069,21 @@ class _TaskDetailScreenState extends State<TaskDetailScreen>
   }
 
   Color _getPriorityColor(String priority) {
-    switch (priority.toLowerCase()) {
-      case 'high':
-        return Colors.red;
-      case 'medium':
-        return Colors.orange;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final normalizedPriority = priority.toLowerCase();
+
+    switch (normalizedPriority) {
       case 'low':
-        return Colors.green;
+        return isDark ? Colors.green.shade400 : Colors.green;
+      case 'medium':
+      case 'meduim': // Handle misspelling
+        return isDark ? Colors.orange.shade300 : Colors.orange;
+      case 'high':
+        return isDark ? Colors.red.shade300 : Colors.red;
       default:
-        return Colors.orange;
+        return isDark
+            ? Colors.orange.shade300
+            : Colors.orange; // Default to medium priority color
     }
   }
 }

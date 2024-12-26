@@ -267,7 +267,7 @@ class _SearchScreenState extends State<SearchScreen>
                           ),
                         );
                       }
-                      return SliverToBoxAdapter(child: SizedBox.shrink());
+                      return const SliverToBoxAdapter(child: SizedBox.shrink());
                     },
                   ),
                 ],
@@ -305,23 +305,38 @@ class _SearchScreenState extends State<SearchScreen>
     // Store the task for potential undo
     final deletedTask = Map<String, dynamic>.from(task);
     final searchCubit = context.read<SearchCubit>();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // Show snackbar with undo option
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Text('Task deleted'),
+        content: Text(
+          'Task deleted',
+          style: TextStyle(
+            color: isDark ? Colors.white : Colors.white,
+            fontSize: 14.sp,
+          ),
+        ),
+        backgroundColor: isDark ? Colors.grey[800] : Colors.black87,
         action: SnackBarAction(
           label: 'Undo',
+          textColor: Colors.deepOrange,
           onPressed: () {
             searchCubit.restoreTask(deletedTask);
           },
         ),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10.r),
+          borderRadius: BorderRadius.circular(12.r),
         ),
-        margin: EdgeInsets.all(8.r),
+        margin: EdgeInsets.only(
+          bottom: 20.h,
+          left: 16.w,
+          right: 16.w,
+        ),
+        duration: const Duration(seconds: 3),
+        elevation: isDark ? 4 : 2,
       ),
     );
 
