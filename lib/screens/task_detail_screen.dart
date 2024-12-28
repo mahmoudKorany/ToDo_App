@@ -5,13 +5,12 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:todo_app/componants/shard_componant.dart';
 import 'package:todo_app/cubit/cubit.dart';
 import 'package:todo_app/cubit/states.dart';
-import 'package:intl/intl.dart';
-import 'package:todo_app/services/notification_service.dart';
+import 'package:todo_app/models/task_model.dart';
 
 class TaskDetailScreen extends StatefulWidget {
-  final Map task;
+  final TaskModel task;
 
-  const TaskDetailScreen({Key? key, required this.task}) : super(key: key);
+  const TaskDetailScreen({super.key, required this.task});
 
   @override
   State<TaskDetailScreen> createState() => _TaskDetailScreenState();
@@ -23,7 +22,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen>
   late TextEditingController detailsController;
   late TextEditingController dateController;
   late TextEditingController timeController;
-  late Map<String, dynamic> currentTask;
+  late TaskModel currentTask;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
@@ -32,16 +31,15 @@ class _TaskDetailScreenState extends State<TaskDetailScreen>
   @override
   void initState() {
     super.initState();
-    currentTask = Map<String, dynamic>.from(widget.task);
-    titleController = TextEditingController(text: currentTask['title']);
-    detailsController =
-        TextEditingController(text: currentTask['details'] ?? '');
-    dateController = TextEditingController(text: currentTask['date']);
-    timeController = TextEditingController(text: currentTask['time']);
+    currentTask = widget.task;
+    titleController = TextEditingController(text: currentTask.title);
+    detailsController = TextEditingController(text: currentTask.details ?? '');
+    dateController = TextEditingController(text: currentTask.date);
+    timeController = TextEditingController(text: currentTask.time);
 
     // Set the priority from the task or default to 'medium'
     final todoCubit = TodoCubit.get(context);
-    todoCubit.changePriority(currentTask['priority'] ?? 'medium');
+    todoCubit.changePriority(currentTask.priority);
 
     _animationController = AnimationController(
       vsync: this,
@@ -142,7 +140,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen>
               height: 56.h,
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: currentTask['status'] == 'done'
+                  colors: currentTask.status == 'done'
                       ? [
                           Colors.green.shade400,
                           Colors.green.shade300,
@@ -157,7 +155,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen>
                 borderRadius: BorderRadius.circular(16.r),
                 boxShadow: [
                   BoxShadow(
-                    color: (currentTask['status'] == 'done'
+                    color: (currentTask.status == 'done'
                             ? Colors.green
                             : Colors.deepOrange)
                         .withOpacity(0.3),
@@ -172,19 +170,39 @@ class _TaskDetailScreenState extends State<TaskDetailScreen>
                   borderRadius: BorderRadius.circular(16.r),
                   onTap: () {
                     final newStatus =
-                        currentTask['status'] == 'done' ? 'new' : 'done';
+                        currentTask.status == 'done' ? 'new' : 'done';
                     final todoCubit = TodoCubit.get(context);
                     final scaffoldMessenger = ScaffoldMessenger.of(context);
 
+                    if (currentTask.id == null) {
+                      scaffoldMessenger.showSnackBar(
+                        const SnackBar(
+                          content: Text('Error: Task ID is missing'),
+                        ),
+                      );
+                      return;
+                    }
+
+                    if (currentTask.id == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Cannot update task: Invalid task ID'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                      return;
+                    }
+
                     todoCubit
                         .updateTaskStatus(
-                      id: currentTask['id'],
+                      id: currentTask
+                          .id!, // Safe to use ! operator now after null check
                       status: newStatus,
                     )
                         .then((_) {
                       if (mounted) {
                         setState(() {
-                          currentTask['status'] = newStatus;
+                          currentTask = currentTask.copyWith(status: newStatus);
                         });
                       }
 
@@ -211,13 +229,15 @@ class _TaskDetailScreenState extends State<TaskDetailScreen>
                                   newStatus == 'done' ? 'new' : 'done';
                               todoCubit
                                   .updateTaskStatus(
-                                id: currentTask['id'],
+                                id: currentTask
+                                    .id!, // Safe to use ! operator now after null check
                                 status: previousStatus,
                               )
                                   .then((_) {
                                 if (mounted) {
                                   setState(() {
-                                    currentTask['status'] = previousStatus;
+                                    currentTask = currentTask.copyWith(
+                                        status: previousStatus);
                                   });
                                 }
                               });
@@ -245,7 +265,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen>
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
-                        currentTask['status'] == 'done'
+                        currentTask.status == 'done'
                             ? Icons.check_circle_rounded
                             : Icons.check_circle_outline_rounded,
                         color: Colors.white,
@@ -253,7 +273,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen>
                       ),
                       SizedBox(width: 12.w),
                       Text(
-                        currentTask['status'] == 'done'
+                        currentTask.status == 'done'
                             ? 'Mark as Incomplete'
                             : 'Mark as Complete',
                         style: TextStyle(
@@ -383,22 +403,22 @@ class _TaskDetailScreenState extends State<TaskDetailScreen>
                       width: double.infinity,
                       margin: EdgeInsets.all(16.w),
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            Theme.of(context).brightness == Brightness.dark
-                                ? const Color(0xFF2D2D2D)
-                                : Theme.of(context).cardColor,
-                            Theme.of(context).brightness == Brightness.dark
-                                ? const Color(0xFF252525)
-                                : Theme.of(context).cardColor.withOpacity(0.95),
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? const Color(0xFF1E1E1E)
+                            : Theme.of(context).cardColor,
                         borderRadius: BorderRadius.circular(24.r),
+                        border: Border.all(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.grey[850]!
+                              : Colors.grey[200]!,
+                          width: 1,
+                        ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.black.withOpacity(0.4)
+                                    : Colors.black.withOpacity(0.05),
                             blurRadius: 20,
                             offset: const Offset(0, 5),
                           ),
@@ -410,24 +430,12 @@ class _TaskDetailScreenState extends State<TaskDetailScreen>
                           Container(
                             padding: EdgeInsets.all(20.w),
                             decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  Theme.of(context).brightness ==
-                                          Brightness.dark
-                                      ? const Color(0xFF2D2D2D)
-                                      : Theme.of(context)
-                                          .primaryColor
-                                          .withOpacity(0.1),
-                                  Theme.of(context).brightness ==
-                                          Brightness.dark
-                                      ? const Color(0xFF252525)
-                                      : Theme.of(context)
-                                          .primaryColor
-                                          .withOpacity(0.05),
-                                ],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? const Color(0xFF252525)
+                                  : Theme.of(context)
+                                      .primaryColor
+                                      .withOpacity(0.05),
                               borderRadius: BorderRadius.only(
                                 topLeft: Radius.circular(24.r),
                                 topRight: Radius.circular(24.r),
@@ -442,17 +450,21 @@ class _TaskDetailScreenState extends State<TaskDetailScreen>
                                       padding: EdgeInsets.all(12.w),
                                       decoration: BoxDecoration(
                                         color: _getPriorityColor(
-                                                currentTask['priority'] ??
-                                                    'medium')
+                                                currentTask.priority)
                                             .withOpacity(0.1),
                                         borderRadius:
                                             BorderRadius.circular(16.r),
+                                        border: Border.all(
+                                          color: _getPriorityColor(
+                                                  currentTask.priority)
+                                              .withOpacity(0.2),
+                                          width: 1,
+                                        ),
                                       ),
                                       child: Icon(
                                         Icons.flag_rounded,
                                         color: _getPriorityColor(
-                                            currentTask['priority'] ??
-                                                'medium'),
+                                            currentTask.priority),
                                         size: 24.w,
                                       ),
                                     ),
@@ -463,16 +475,22 @@ class _TaskDetailScreenState extends State<TaskDetailScreen>
                                             CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            currentTask['title'],
+                                            currentTask.title,
                                             style: TextStyle(
                                               fontSize: 20.sp,
                                               fontWeight: FontWeight.w600,
-                                              decoration:
-                                                  currentTask['status'] ==
-                                                          'done'
-                                                      ? TextDecoration
-                                                          .lineThrough
-                                                      : null,
+                                              color: Theme.of(context)
+                                                          .brightness ==
+                                                      Brightness.dark
+                                                  ? Colors.grey[200]
+                                                  : Theme.of(context)
+                                                      .textTheme
+                                                      .titleLarge
+                                                      ?.color,
+                                              decoration: currentTask.status ==
+                                                      'done'
+                                                  ? TextDecoration.lineThrough
+                                                  : null,
                                             ),
                                           ),
                                           SizedBox(height: 8.h),
@@ -484,24 +502,26 @@ class _TaskDetailScreenState extends State<TaskDetailScreen>
                                                     vertical: 6.h),
                                                 decoration: BoxDecoration(
                                                   color: _getPriorityColor(
-                                                          currentTask[
-                                                                  'priority'] ??
-                                                              'medium')
+                                                          currentTask.priority)
                                                       .withOpacity(0.1),
                                                   borderRadius:
                                                       BorderRadius.circular(
                                                           20.r),
+                                                  border: Border.all(
+                                                    color: _getPriorityColor(
+                                                            currentTask
+                                                                .priority)
+                                                        .withOpacity(0.2),
+                                                    width: 1,
+                                                  ),
                                                 ),
                                                 child: Text(
-                                                  (currentTask['priority'] ??
-                                                          'MEDIUM')
+                                                  currentTask.priority
                                                       .toString()
                                                       .toUpperCase(),
                                                   style: TextStyle(
                                                     color: _getPriorityColor(
-                                                        currentTask[
-                                                                'priority'] ??
-                                                            'medium'),
+                                                        currentTask.priority),
                                                     fontSize: 12.sp,
                                                     fontWeight: FontWeight.w600,
                                                   ),
@@ -522,7 +542,270 @@ class _TaskDetailScreenState extends State<TaskDetailScreen>
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                if (currentTask['details']?.isNotEmpty ??
+                                // Time and Date Section
+                                Container(
+                                  padding: EdgeInsets.all(16.w),
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? Colors.grey[850]
+                                        : Colors.grey[50],
+                                    borderRadius: BorderRadius.circular(16.r),
+                                    border: Border.all(
+                                      color: Theme.of(context).brightness ==
+                                              Brightness.dark
+                                          ? Colors.grey[800]!
+                                          : Colors.grey[200]!,
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Container(
+                                            padding: EdgeInsets.all(10.w),
+                                            decoration: BoxDecoration(
+                                              color: Colors.deepOrange
+                                                  .withOpacity(0.1),
+                                              borderRadius:
+                                                  BorderRadius.circular(12.r),
+                                              border: Border.all(
+                                                color: Colors.deepOrange
+                                                    .withOpacity(0.2),
+                                                width: 1,
+                                              ),
+                                            ),
+                                            child: Icon(
+                                              Icons.access_time_rounded,
+                                              color: Colors.deepOrange,
+                                              size: 20.w,
+                                            ),
+                                          ),
+                                          SizedBox(width: 12.w),
+                                          Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                'Time',
+                                                style: TextStyle(
+                                                  fontSize: 12.sp,
+                                                  fontWeight: FontWeight.w500,
+                                                  color: Theme.of(context)
+                                                              .brightness ==
+                                                          Brightness.dark
+                                                      ? Colors.grey[400]
+                                                      : Colors.grey[600],
+                                                ),
+                                              ),
+                                              SizedBox(height: 4.h),
+                                              Text(
+                                                currentTask.time,
+                                                style: TextStyle(
+                                                  fontSize: 14.sp,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: Theme.of(context)
+                                                              .brightness ==
+                                                          Brightness.dark
+                                                      ? Colors.grey[200]
+                                                      : Colors.grey[800],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                      SizedBox(height: 16.h),
+                                      Container(
+                                        width: double.infinity,
+                                        height: 1,
+                                        color: Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? Colors.grey[800]
+                                            : Colors.grey[300],
+                                      ),
+                                      SizedBox(height: 16.h),
+                                      Row(
+                                        children: [
+                                          Container(
+                                            padding: EdgeInsets.all(10.w),
+                                            decoration: BoxDecoration(
+                                              color: Colors.deepOrange
+                                                  .withOpacity(0.1),
+                                              borderRadius:
+                                                  BorderRadius.circular(12.r),
+                                              border: Border.all(
+                                                color: Colors.deepOrange
+                                                    .withOpacity(0.2),
+                                                width: 1,
+                                              ),
+                                            ),
+                                            child: Icon(
+                                              Icons.calendar_today_rounded,
+                                              color: Colors.deepOrange,
+                                              size: 20.w,
+                                            ),
+                                          ),
+                                          SizedBox(width: 12.w),
+                                          Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                'Date',
+                                                style: TextStyle(
+                                                  fontSize: 12.sp,
+                                                  fontWeight: FontWeight.w500,
+                                                  color: Theme.of(context)
+                                                              .brightness ==
+                                                          Brightness.dark
+                                                      ? Colors.grey[400]
+                                                      : Colors.grey[600],
+                                                ),
+                                              ),
+                                              SizedBox(height: 4.h),
+                                              Text(
+                                                currentTask.date,
+                                                style: TextStyle(
+                                                  fontSize: 14.sp,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: Theme.of(context)
+                                                              .brightness ==
+                                                          Brightness.dark
+                                                      ? Colors.grey[200]
+                                                      : Colors.grey[800],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                SizedBox(height: 20.h),
+                                // Category Section
+                                if (currentTask.category.isNotEmpty) ...[
+                                  Container(
+                                    padding: EdgeInsets.all(16.w),
+                                    decoration: BoxDecoration(
+                                      color: Theme.of(context).brightness ==
+                                              Brightness.dark
+                                          ? Colors.grey[850]
+                                          : Colors.grey[50],
+                                      borderRadius: BorderRadius.circular(16.r),
+                                      border: Border.all(
+                                        color: Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? Colors.grey[800]!
+                                            : Colors.grey[200]!,
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          padding: EdgeInsets.all(10.w),
+                                          decoration: BoxDecoration(
+                                            color: Colors.blue.withOpacity(0.1),
+                                            borderRadius:
+                                                BorderRadius.circular(12.r),
+                                            border: Border.all(
+                                              color:
+                                                  Colors.blue.withOpacity(0.2),
+                                              width: 1,
+                                            ),
+                                          ),
+                                          child: Icon(
+                                            Icons.category_rounded,
+                                            color: Colors.blue,
+                                            size: 20.w,
+                                          ),
+                                        ),
+                                        SizedBox(width: 12.w),
+                                        Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'Category',
+                                              style: TextStyle(
+                                                fontSize: 12.sp,
+                                                fontWeight: FontWeight.w500,
+                                                color: Theme.of(context)
+                                                            .brightness ==
+                                                        Brightness.dark
+                                                    ? Colors.grey[400]
+                                                    : Colors.grey[600],
+                                              ),
+                                            ),
+                                            SizedBox(height: 4.h),
+                                            Text(
+                                              currentTask.category,
+                                              style: TextStyle(
+                                                fontSize: 14.sp,
+                                                fontWeight: FontWeight.w600,
+                                                color: Theme.of(context)
+                                                            .brightness ==
+                                                        Brightness.dark
+                                                    ? Colors.grey[200]
+                                                    : Colors.grey[800],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  SizedBox(height: 20.h),
+                                ],
+                                // Status Indicator
+                                Container(
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: 16.w, vertical: 12.h),
+                                  decoration: BoxDecoration(
+                                    color: currentTask.status == 'done'
+                                        ? Colors.green.withOpacity(0.1)
+                                        : Colors.deepOrange.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(12.r),
+                                    border: Border.all(
+                                      color: currentTask.status == 'done'
+                                          ? Colors.green.withOpacity(0.2)
+                                          : Colors.deepOrange.withOpacity(0.2),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        currentTask.status == 'done'
+                                            ? Icons.check_circle_rounded
+                                            : Icons.pending_rounded,
+                                        color: currentTask.status == 'done'
+                                            ? Colors.green
+                                            : Colors.deepOrange,
+                                        size: 20.w,
+                                      ),
+                                      SizedBox(width: 8.w),
+                                      Text(
+                                        currentTask.status == 'done'
+                                            ? 'Completed'
+                                            : 'In Progress',
+                                        style: TextStyle(
+                                          fontSize: 14.sp,
+                                          fontWeight: FontWeight.w600,
+                                          color: currentTask.status == 'done'
+                                              ? Colors.green
+                                              : Colors.deepOrange,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                SizedBox(height: 20.h),
+                                if (currentTask.details?.isNotEmpty ??
                                     false) ...[
                                   Text(
                                     'Description',
@@ -542,64 +825,42 @@ class _TaskDetailScreenState extends State<TaskDetailScreen>
                                     decoration: BoxDecoration(
                                       color: Theme.of(context).brightness ==
                                               Brightness.dark
-                                          ? const Color(0xFF2D2D2D)
-                                          : Theme.of(context)
-                                              .cardColor
-                                              .withOpacity(0.5),
+                                          ? Colors.grey[850]
+                                          : Colors.grey[50],
                                       borderRadius: BorderRadius.circular(16.r),
                                       border: Border.all(
                                         color: Theme.of(context).brightness ==
                                                 Brightness.dark
-                                            ? Colors.grey.shade800
-                                            : Theme.of(context)
-                                                .dividerColor
-                                                .withOpacity(0.1),
+                                            ? Colors.grey[800]!
+                                            : Colors.grey[200]!,
+                                        width: 1,
                                       ),
+                                      boxShadow: Theme.of(context).brightness ==
+                                              Brightness.dark
+                                          ? [
+                                              BoxShadow(
+                                                color: Colors.black
+                                                    .withOpacity(0.2),
+                                                blurRadius: 8,
+                                                offset: const Offset(0, 2),
+                                              ),
+                                            ]
+                                          : null,
                                     ),
                                     child: Text(
-                                      currentTask['details'],
+                                      currentTask.details ?? '',
                                       style: TextStyle(
                                         fontSize: 15.sp,
-                                        color: Theme.of(context)
-                                            .textTheme
-                                            .bodyMedium
-                                            ?.color
-                                            ?.withOpacity(0.8),
                                         height: 1.5,
+                                        color: Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? Colors.grey[300]
+                                            : Colors.grey[800],
                                       ),
                                     ),
                                   ),
                                   SizedBox(height: 24.h),
                                 ],
-                                Text(
-                                  'Schedule',
-                                  style: TextStyle(
-                                    fontSize: 16.sp,
-                                    fontWeight: FontWeight.w600,
-                                    color: Theme.of(context)
-                                        .textTheme
-                                        .titleMedium
-                                        ?.color,
-                                  ),
-                                ),
-                                SizedBox(height: 12.h),
-                                Column(
-                                  children: [
-                                    _buildInfoCard(
-                                      context,
-                                      Icons.calendar_today_rounded,
-                                      'Due Date',
-                                      currentTask['date'],
-                                    ),
-                                    SizedBox(height: 16.h),
-                                    _buildInfoCard(
-                                      context,
-                                      Icons.access_time_rounded,
-                                      'Time',
-                                      currentTask['time'],
-                                    ),
-                                  ],
-                                ),
                               ],
                             ),
                           ),
@@ -616,315 +877,514 @@ class _TaskDetailScreenState extends State<TaskDetailScreen>
     );
   }
 
-  Widget _buildInfoCard(
-      BuildContext context, IconData icon, String label, String value) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(20.w),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            isDark ? const Color(0xFF2D2D2D) : Theme.of(context).cardColor,
-            isDark
-                ? const Color(0xFF252525)
-                : Theme.of(context).cardColor.withOpacity(0.95),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(20.r),
-        border: Border.all(
-          color: isDark
-              ? Colors.grey.shade800
-              : Theme.of(context).dividerColor.withOpacity(0.1),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: EdgeInsets.all(12.w),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  isDark
-                      ? Colors.deepOrange.withOpacity(0.2)
-                      : Theme.of(context).primaryColor.withOpacity(0.2),
-                  isDark
-                      ? Colors.deepOrange.withOpacity(0.1)
-                      : Theme.of(context).primaryColor.withOpacity(0.1),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(16.r),
-            ),
-            child: Icon(
-              icon,
-              color:
-                  isDark ? Colors.deepOrange : Theme.of(context).primaryColor,
-              size: 24.w,
-            ),
-          ),
-          SizedBox(width: 16.w),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.w500,
-                    color: isDark
-                        ? Colors.grey[400]
-                        : Theme.of(context)
-                            .textTheme
-                            .bodyMedium
-                            ?.color
-                            ?.withOpacity(0.7),
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                SizedBox(height: 6.h),
-                Text(
-                  value,
-                  style: TextStyle(
-                    fontSize: 18.sp,
-                    fontWeight: FontWeight.w600,
-                    color: isDark
-                        ? Colors.white
-                        : Theme.of(context).textTheme.titleMedium?.color,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _showEditDialog(BuildContext context) {
-    titleController.text = currentTask['title'];
-    detailsController.text = currentTask['details'] ?? '';
-    dateController.text = currentTask['date'];
-    timeController.text = currentTask['time'];
+    final todoCubit = TodoCubit.get(context);
+    todoCubit.changePriority(currentTask.priority.toLowerCase());
+    todoCubit.changeCategory(currentTask.category);
 
     showModalBottomSheet(
-      context: context,
       isScrollControlled: true,
+      context: context,
       backgroundColor: Colors.transparent,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => Container(
+      builder: (context) => SafeArea(
+        bottom: false,
+        child: Container(
+          height: MediaQuery.of(context).size.height * 0.9,
           padding: EdgeInsets.only(
             bottom: MediaQuery.of(context).viewInsets.bottom,
+            top: 20.h,
+            left: 20.w,
+            right: 20.w,
           ),
           decoration: BoxDecoration(
             color: Theme.of(context).brightness == Brightness.dark
-                ? const Color(0xFF1A1A1A)
+                ? const Color(0xFF2C2C2C)
                 : Theme.of(context).scaffoldBackgroundColor,
             borderRadius: BorderRadius.vertical(
               top: Radius.circular(20.r),
             ),
+            border: Theme.of(context).brightness == Brightness.dark
+                ? Border.all(
+                    color: Colors.white.withOpacity(0.1),
+                    width: 1,
+                  )
+                : null,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.3),
+                spreadRadius: 1,
+                blurRadius: 10,
+                offset: const Offset(0, -5),
+              ),
+            ],
           ),
           child: SingleChildScrollView(
-            child: Padding(
-              padding: EdgeInsets.all(20.r),
-              child: Form(
-                key: formkey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
+            physics: const BouncingScrollPhysics(),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40.w,
+                    height: 4.h,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white.withOpacity(0.2)
+                          : Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2.r),
+                    ),
+                  ),
+                ),
+                SizedBox(height: 15.h),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Center(
-                      child: Container(
-                        width: 40.w,
-                        height: 4.h,
-                        decoration: BoxDecoration(
-                          color: Colors.grey[300],
-                          borderRadius: BorderRadius.circular(2.r),
-                        ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: EdgeInsets.all(10.w),
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      Colors.deepOrange,
+                                      Colors.deepOrange.shade700,
+                                    ],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                  borderRadius: BorderRadius.circular(14.r),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.deepOrange.withOpacity(
+                                          Theme.of(context).brightness ==
+                                                  Brightness.dark
+                                              ? 0.4
+                                              : 0.25),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: Icon(
+                                  Icons.edit_note_rounded,
+                                  color: Colors.white,
+                                  size: 28.sp,
+                                ),
+                              ),
+                              SizedBox(width: 16.w),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Edit Task',
+                                      style: TextStyle(
+                                        fontSize: 32.sp,
+                                        fontWeight: FontWeight.w800,
+                                        color: Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? Colors.white
+                                            : Colors.deepOrange,
+                                        letterSpacing: -0.5,
+                                      ),
+                                    ),
+                                    SizedBox(height: 8.h),
+                                    Container(
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 12.w,
+                                        vertical: 6.h,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? Colors.deepOrange
+                                                .withOpacity(0.15)
+                                            : Colors.deepOrange
+                                                .withOpacity(0.08),
+                                        borderRadius:
+                                            BorderRadius.circular(20.r),
+                                        border: Border.all(
+                                          color: Theme.of(context).brightness ==
+                                                  Brightness.dark
+                                              ? Colors.deepOrange
+                                                  .withOpacity(0.3)
+                                              : Colors.deepOrange
+                                                  .withOpacity(0.2),
+                                          width: 1,
+                                        ),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.auto_awesome,
+                                            size: 16.sp,
+                                            color:
+                                                Theme.of(context).brightness ==
+                                                        Brightness.dark
+                                                    ? Colors.deepOrange.shade300
+                                                    : Colors.deepOrange,
+                                          ),
+                                          SizedBox(width: 6.w),
+                                          Text(
+                                            'Make it perfect',
+                                            style: TextStyle(
+                                              fontSize: 14.sp,
+                                              color: Theme.of(context)
+                                                          .brightness ==
+                                                      Brightness.dark
+                                                  ? Colors.deepOrange.shade300
+                                                  : Colors.deepOrange,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
-                    SizedBox(height: 20.h),
-                    Text(
-                      'Edit Task',
-                      style: TextStyle(
-                        fontSize: 24.sp,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(height: 20.h),
                     Container(
+                      margin: EdgeInsets.only(left: 16.w),
                       decoration: BoxDecoration(
-                        //color: Theme.of(context).cardColor,
-                        borderRadius: BorderRadius.circular(16.r),
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white.withOpacity(0.05)
+                            : Colors.grey[50],
+                        borderRadius: BorderRadius.circular(12.r),
+                        border: Border.all(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white.withOpacity(0.1)
+                              : Colors.grey[200]!,
+                          width: 1,
+                        ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
+                            color: Colors.black.withOpacity(0.1),
+                            spreadRadius: 0,
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
                           ),
                         ],
                       ),
-                      child: Column(
-                        children: [
-                          defaultFormField(
-                            context: context,
-                            controller: titleController,
-                            type: TextInputType.text,
-                            validate: (value) {
-                              if (value!.isEmpty) {
-                                return 'Title must not be empty';
-                              }
-                              return null;
-                            },
-                            label: 'Task Title',
-                            prefix: Icons.title,
-                          ),
-                          SizedBox(height: 15.h),
-                          defaultFormField(
-                            context: context,
-                            controller: detailsController,
-                            type: TextInputType.multiline,
-                            maxLines: 3,
-                            validate: (value) {
-                              return null;
-                            },
-                            label: 'Task Details',
-                            prefix: Icons.description,
-                          ),
-                          SizedBox(height: 15.h),
-                          InkWell(
-                            onTap: () {
-                              showTimePicker(
-                                context: context,
-                                initialTime: TimeOfDay.now(),
-                              ).then((value) {
-                                if (value != null) {
-                                  timeController.text = value.format(context);
-                                }
-                              });
-                            },
-                            child: defaultFormField(
-                              context: context,
-                              controller: timeController,
-                              type: TextInputType.datetime,
-                              validate: (value) {
-                                if (value!.isEmpty) {
-                                  return 'Time must not be empty';
-                                }
-                                return null;
-                              },
-                              label: 'Task Time',
-                              prefix: Icons.watch_later_outlined,
-                              enabled: false,
-                            ),
-                          ),
-                          SizedBox(height: 15.h),
-                          InkWell(
-                            onTap: () {
-                              showDatePicker(
-                                context: context,
-                                initialDate: DateTime.now(),
-                                firstDate: DateTime.now(),
-                                lastDate: DateTime.parse('2025-12-31'),
-                              ).then((value) {
-                                if (value != null) {
-                                  dateController.text =
-                                      DateFormat.yMMMd().format(value);
-                                }
-                              });
-                            },
-                            child: defaultFormField(
-                              context: context,
-                              controller: dateController,
-                              type: TextInputType.datetime,
-                              validate: (value) {
-                                if (value!.isEmpty) {
-                                  return 'Date must not be empty';
-                                }
-                                return null;
-                              },
-                              label: 'Task Date',
-                              prefix: Icons.calendar_today,
-                              enabled: false,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(height: 16.h),
-                    _buildPrioritySection(
-                        context, TodoCubit.get(context), setState),
-                    SizedBox(height: 20.h),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.deepOrange,
-                          padding: EdgeInsets.symmetric(vertical: 12.h),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12.r),
-                          ),
-                        ),
-                        onPressed: () async {
-                          if (formkey.currentState!.validate()) {
-                            try {
-                              // Schedule alarm for the task
-                              final DateTime taskDateTime = DateFormat('yyyy-MM-dd HH:mm')
-                                  .parse('${dateController.text} ${timeController.text}');
-                              
-                              await NotificationService.createTaskNotification(
-                                title: '⏰ Task Alarm!',
-                                body: 'Time for task: ${titleController.text}',
-                                scheduleTime: taskDateTime,
-                              );
-
-                              await TodoCubit.get(context).updateTask(
-                                id: currentTask['id'],
-                                title: titleController.text,
-                                details: detailsController.text,
-                                date: dateController.text,
-                                time: timeController.text,
-                                priority: TodoCubit.get(context).selectedPriority,
-                              );
-                              setState(() {
-                                currentTask['title'] = titleController.text;
-                                currentTask['details'] = detailsController.text;
-                                currentTask['date'] = dateController.text;
-                                currentTask['time'] = timeController.text;
-                                currentTask['priority'] =
-                                    TodoCubit.get(context).selectedPriority;
-                              });
-                              Navigator.pop(context);
-                            } catch (e) {
-                              print(e);
-                            }
-                          }
-                        },
-                        child: Text(
-                          'Update Task',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.w600,
-                          ),
+                      child: IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: Icon(
+                          Icons.close_rounded,
+                          size: 22.sp,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white.withOpacity(0.8)
+                              : Colors.grey[600],
                         ),
                       ),
                     ),
                   ],
                 ),
-              ),
+                SizedBox(height: 30.h),
+                Form(
+                  key: formkey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Basic Details',
+                        style: TextStyle(
+                          fontSize: 20.sp,
+                          fontWeight: FontWeight.w700,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : Colors.black87,
+                        ),
+                      ),
+                      SizedBox(height: 20.h),
+                      defaultFormField(
+                        controller: titleController,
+                        context: context,
+                        type: TextInputType.text,
+                        validate: (value) {
+                          if (value!.isEmpty) {
+                            return 'Title must not be empty';
+                          }
+                          return null;
+                        },
+                        label: 'Task Title',
+                        prefix: Icons.title,
+                        onSubmit: (value) {},
+                        onChange: (value) {},
+                      ),
+                      SizedBox(height: 15.h),
+                      defaultFormField(
+                        controller: detailsController,
+                        context: context,
+                        type: TextInputType.text,
+                        validate: (value) {
+                          if (value!.isEmpty) {
+                            return 'Details must not be empty';
+                          }
+                          return null;
+                        },
+                        label: 'Task Details',
+                        prefix: Icons.details_rounded,
+                        maxLines: 3,
+                      ),
+                      SizedBox(height: 15.h),
+                      defaultFormField(
+                        controller: dateController,
+                        context: context,
+                        type: TextInputType.none,
+                        onTap: () async {
+                          final DateTime? picked = await showDatePicker(
+                            context: context,
+                            initialDate: DateTime.now(),
+                            firstDate: DateTime.now(),
+                            lastDate: DateTime.now().add(const Duration(days: 36500)), // 100 years
+                            builder: (context, child) {
+                              return Theme(
+                                data: Theme.of(context).copyWith(
+                                  colorScheme: ColorScheme.light(
+                                    primary: Theme.of(context).primaryColor,
+                                    onPrimary: Colors.white,
+                                    surface: Theme.of(context).scaffoldBackgroundColor,
+                                    onSurface: Theme.of(context).textTheme.bodyLarge!.color!,
+                                  ),
+                                ),
+                                child: child!,
+                              );
+                            },
+                          );
+                          if (picked != null) {
+                            setState(() {
+                              dateController.text =
+                                  "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
+                            });
+                          }
+                        },
+                        validate: (value) {
+                          if (value!.isEmpty) {
+                            return 'Date must not be empty';
+                          }
+                          return null;
+                        },
+                        label: 'Task Date',
+                        prefix: Icons.calendar_today,
+                      ),
+                      SizedBox(height: 15.h),
+                      defaultFormField(
+                        controller: timeController,
+                        context: context,
+                        type: TextInputType.none,
+                        onTap: () async {
+                          final TimeOfDay? picked = await showTimePicker(
+                            context: context,
+                            initialTime: TimeOfDay.now(),
+                          );
+                          if (picked != null) {
+                            setState(() {
+                              timeController.text = picked.format(context);
+                            });
+                          }
+                        },
+                        validate: (value) {
+                          if (value!.isEmpty) {
+                            return 'Time must not be empty';
+                          }
+                          return null;
+                        },
+                        label: 'Task Time',
+                        prefix: Icons.access_time,
+                      ),
+                      SizedBox(height: 20.h),
+                      Text(
+                        'Task Properties',
+                        style: TextStyle(
+                          fontSize: 18.sp,
+                          fontWeight: FontWeight.w600,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : Colors.black87,
+                        ),
+                      ),
+                      SizedBox(height: 15.h),
+                      Text(
+                        'Priority Level',
+                        style: TextStyle(
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w500,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : Colors.grey[600],
+                        ),
+                      ),
+                      SizedBox(height: 10.h),
+                      StatefulBuilder(
+                        builder: (context, setState) => _buildPrioritySection(
+                          context,
+                          TodoCubit.get(context),
+                          setState,
+                        ),
+                      ),
+                      SizedBox(height: 20.h),
+                      Text(
+                        'Category',
+                        style: TextStyle(
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w500,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : Colors.grey[600],
+                        ),
+                      ),
+                      SizedBox(height: 10.h),
+                      StatefulBuilder(
+                        builder: (context, setState) => _buildCategorySection(
+                          context,
+                          TodoCubit.get(context),
+                          (category) {
+                            setState(() {
+                              TodoCubit.get(context).changeCategory(category);
+                            });
+                          },
+                        ),
+                      ),
+                      SizedBox(height: 30.h),
+                      Container(
+                        width: double.infinity,
+                        height: 55.h,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.deepOrange,
+                              Colors.deepOrange.shade700,
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(16.r),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.deepOrange.withOpacity(0.3),
+                              blurRadius: 12,
+                              spreadRadius: 2,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
+                        ),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(16.r),
+                            splashColor: Colors.white.withOpacity(0.2),
+                            highlightColor: Colors.white.withOpacity(0.1),
+                            onTap: () async {
+                              HapticFeedback.mediumImpact();
+                              if (formkey.currentState!.validate()) {
+                                final scaffoldMessenger =
+                                    ScaffoldMessenger.of(context);
+                                try {
+                                  scaffoldMessenger.showSnackBar(
+                                    SnackBar(
+                                      content: Row(
+                                        children: [
+                                          SizedBox(
+                                            height: 20.h,
+                                            width: 20.w,
+                                            child:
+                                                const CircularProgressIndicator(
+                                              color: Colors.white,
+                                              strokeWidth: 2,
+                                            ),
+                                          ),
+                                          SizedBox(width: 12.w),
+                                          const Text('Updating task...'),
+                                        ],
+                                      ),
+                                      duration: const Duration(seconds: 1),
+                                      backgroundColor: Colors.deepOrange,
+                                    ),
+                                  );
+
+                                  await TodoCubit.get(context).updateTask(
+                                    id: currentTask.id!,
+                                    title: titleController.text,
+                                    time: timeController.text,
+                                    date: dateController.text,
+                                    details: detailsController.text,
+                                    priority:
+                                        TodoCubit.get(context).selectedPriority,
+                                    category:
+                                        TodoCubit.get(context).selectedCategory,
+                                  );
+
+                                  if (mounted) {
+                                    setState(() {
+                                      currentTask = currentTask.copyWith(
+                                        title: titleController.text,
+                                        time: timeController.text,
+                                        date: dateController.text,
+                                        details: detailsController.text,
+                                        priority: TodoCubit.get(context)
+                                            .selectedPriority,
+                                        category: TodoCubit.get(context)
+                                            .selectedCategory,
+                                      );
+                                    });
+                                  }
+
+                                  Navigator.pop(context);
+
+                                  scaffoldMessenger.showSnackBar(
+                                    SnackBar(
+                                      content: const Text(
+                                          'Task updated successfully'),
+                                      backgroundColor: Colors.green,
+                                      behavior: SnackBarBehavior.floating,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(12.r),
+                                      ),
+                                      margin: EdgeInsets.only(
+                                        bottom: 20.h,
+                                        left: 16.w,
+                                        right: 16.w,
+                                      ),
+                                    ),
+                                  );
+                                } catch (e) {
+                                  scaffoldMessenger.showSnackBar(
+                                    SnackBar(
+                                      content: Text('Error: ${e.toString()}'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
+                              }
+                            },
+                            child: Center(
+                              child: Text(
+                                'Save Changes',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16.sp,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 20.h),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -932,79 +1392,182 @@ class _TaskDetailScreenState extends State<TaskDetailScreen>
     );
   }
 
-  Widget _buildPrioritySection(
-      BuildContext context, TodoCubit todoCubit, StateSetter setState) {
+  Widget _buildCategorySection(
+    BuildContext context,
+    TodoCubit cubit,
+    Function(String) onCategoryChanged,
+  ) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final currentPriority = todoCubit.selectedPriority.toLowerCase();
 
     return Container(
-      width: double.infinity,
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF2D2D2D) : Theme.of(context).cardColor,
+        color: isDark ? Colors.grey[900] : Colors.white,
         borderRadius: BorderRadius.circular(12.r),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.3 : 0.1),
-            blurRadius: isDark ? 8 : 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        border: Border.all(
+          color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey[200]!,
+          width: 1,
+        ),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Priority',
-            style: TextStyle(
-              fontSize: 16.sp,
-              fontWeight: FontWeight.w600,
-              color: Theme.of(context).textTheme.titleLarge?.color,
-            ),
-          ),
-          SizedBox(height: 12.h),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.start,
+          ...cubit.categories.map((category) {
+            final categoryName = category['name'] as String;
+            final bool isSelected = cubit.selectedCategory == categoryName;
+
+            return Column(
               children: [
-                _buildPriorityOption(
-                  context,
-                  'Low',
-                  _getPriorityColor('low'),
-                  currentPriority == 'low',
-                  () {
-                    setState(() {
-                      todoCubit.changePriority('low');
-                    });
-                  },
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      onCategoryChanged(categoryName);
+                    },
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 16.w,
+                        vertical: 12.h,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? (category['color'] as Color)
+                                .withOpacity(isDark ? 0.2 : 0.1)
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(8.r),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: EdgeInsets.all(8.w),
+                            decoration: BoxDecoration(
+                              color: (category['color'] as Color)
+                                  .withOpacity(isDark ? 0.2 : 0.1),
+                              borderRadius: BorderRadius.circular(8.r),
+                            ),
+                            child: Icon(
+                              category['icon'] as IconData,
+                              color: isDark
+                                  ? (category['color'] as Color).withOpacity(0.9)
+                                  : category['color'] as Color,
+                              size: 20.sp,
+                            ),
+                          ),
+                          SizedBox(width: 12.w),
+                          Text(
+                            categoryName,
+                            style: TextStyle(
+                              fontSize: 16.sp,
+                              fontWeight: isSelected
+                                  ? FontWeight.w600
+                                  : FontWeight.w500,
+                              color: isSelected
+                                  ? (isDark
+                                      ? (category['color'] as Color)
+                                          .withOpacity(0.9)
+                                      : category['color'] as Color)
+                                  : (isDark
+                                      ? Colors.white.withOpacity(0.9)
+                                      : Colors.grey[700]),
+                            ),
+                          ),
+                          const Spacer(),
+                          if (isSelected)
+                            Container(
+                              padding: EdgeInsets.all(6.w),
+                              decoration: BoxDecoration(
+                                color: (category['color'] as Color)
+                                    .withOpacity(isDark ? 0.2 : 0.1),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.check,
+                                color: isDark
+                                    ? (category['color'] as Color).withOpacity(0.9)
+                                    : category['color'] as Color,
+                                size: 16.sp,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
-                SizedBox(width: 12.w),
-                _buildPriorityOption(
-                  context,
-                  'Medium',
-                  _getPriorityColor('medium'),
-                  currentPriority == 'medium' || currentPriority == 'meduim',
-                  () {
-                    setState(() {
-                      todoCubit.changePriority('medium');
-                    });
-                  },
-                ),
-                SizedBox(width: 12.w),
-                _buildPriorityOption(
-                  context,
-                  'High',
-                  _getPriorityColor('high'),
-                  currentPriority == 'high',
-                  () {
-                    setState(() {
-                      todoCubit.changePriority('high');
-                    });
-                  },
-                ),
+                if (categoryName != cubit.categories.last['name'])
+                  Divider(
+                    height: 1,
+                    thickness: 1,
+                    color: isDark
+                        ? Colors.white.withOpacity(0.1)
+                        : Colors.grey[200],
+                  ),
               ],
-            ),
+            );
+          }).toList(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPrioritySection(
+    BuildContext context,
+    TodoCubit cubit,
+    Function setState,
+  ) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? Colors.grey[900] : Colors.white,
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(
+          color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey[200]!,
+          width: 1,
+        ),
+      ),
+      child: Column(
+        children: [
+          _buildPriorityOption(
+            context,
+            'High',
+            cubit.selectedPriority.toLowerCase() == 'high',
+            () => setState(() {
+              cubit.selectedPriority = 'High';
+              HapticFeedback.lightImpact();
+            }),
+            Colors.red[400]!,
+            Icons.arrow_upward_rounded,
+          ),
+          Divider(
+            height: 1,
+            thickness: 1,
+            color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey[200],
+          ),
+          _buildPriorityOption(
+            context,
+            'Medium',
+            cubit.selectedPriority.toLowerCase() == 'medium',
+            () => setState(() {
+              cubit.selectedPriority = 'Medium';
+              HapticFeedback.lightImpact();
+            }),
+            Colors.orange[400]!,
+            Icons.remove_rounded,
+          ),
+          Divider(
+            height: 1,
+            thickness: 1,
+            color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey[200],
+          ),
+          _buildPriorityOption(
+            context,
+            'Low',
+            cubit.selectedPriority.toLowerCase() == 'low',
+            () => setState(() {
+              cubit.selectedPriority = 'Low';
+              HapticFeedback.lightImpact();
+            }),
+            Colors.green[400]!,
+            Icons.arrow_downward_rounded,
           ),
         ],
       ),
@@ -1013,50 +1576,72 @@ class _TaskDetailScreenState extends State<TaskDetailScreen>
 
   Widget _buildPriorityOption(
     BuildContext context,
-    String label,
-    Color color,
+    String title,
     bool isSelected,
-    VoidCallback onPressed,
+    VoidCallback onTap,
+    Color color,
+    IconData icon,
   ) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return GestureDetector(
-      onTap: onPressed,
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? color.withOpacity(isDark ? 0.2 : 0.1)
-              : Colors.transparent,
-          border: Border.all(
-            color: isSelected
-                ? color
-                : Colors.grey.withOpacity(isDark ? 0.4 : 0.3),
-            width: 1,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: 16.w,
+            vertical: 12.h,
           ),
-          borderRadius: BorderRadius.circular(8.r),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.flag_rounded,
-              size: 16.sp,
-              color: isSelected
-                  ? color
-                  : Colors.grey.withOpacity(isDark ? 0.7 : 0.6),
-            ),
-            SizedBox(width: 4.w),
-            Text(
-              label,
-              style: TextStyle(
-                color: isSelected
-                    ? color
-                    : Colors.grey.withOpacity(isDark ? 0.7 : 0.6),
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+          decoration: BoxDecoration(
+            color: isSelected
+                ? color.withOpacity(isDark ? 0.2 : 0.1)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(8.r),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(8.w),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(isDark ? 0.2 : 0.1),
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+                child: Icon(
+                  icon,
+                  color: isDark ? color.withOpacity(0.9) : color,
+                  size: 20.sp,
+                ),
               ),
-            ),
-          ],
+              SizedBox(width: 12.w),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                  color: isSelected
+                      ? (isDark ? color.withOpacity(0.9) : color)
+                      : (isDark
+                          ? Colors.white.withOpacity(0.9)
+                          : Colors.grey[700]),
+                ),
+              ),
+              const Spacer(),
+              if (isSelected)
+                Container(
+                  padding: EdgeInsets.all(6.w),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(isDark ? 0.2 : 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.check,
+                    color: isDark ? color.withOpacity(0.9) : color,
+                    size: 16.sp,
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -1075,7 +1660,18 @@ class _TaskDetailScreenState extends State<TaskDetailScreen>
           ),
           TextButton(
             onPressed: () {
-              TodoCubit.get(context).deleteDatabase(currentTask['id']);
+              if (currentTask.id == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Cannot delete task: Invalid task ID'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+                return;
+              }
+
+              TodoCubit.get(context).deleteDatabase(currentTask
+                  .id!); // Safe to use ! operator now after null check
               Navigator.pop(context); // Close dialog
               Navigator.pop(context); // Return to previous screen
             },

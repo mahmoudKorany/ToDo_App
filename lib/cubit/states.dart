@@ -33,3 +33,5 @@ class FilterTasksSuccessState extends TodoStates {}
 class FilterTasksErrorState extends TodoStates {}
 
 class ChangePriorityState extends TodoStates {}
+
+class ChangeCategoryState extends TodoStates {}

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:todo_app/componants/shard_componant.dart';
+import 'package:todo_app/cubit/search/search_cubit.dart';
+import 'package:todo_app/screens/search_screen.dart';
 import '../cubit/cubit.dart';
 import '../cubit/states.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -78,8 +80,27 @@ class DoneTaskScreen extends StatelessWidget {
                             size: 24,
                           ),
                           onPressed: () {
-                            Navigator.pushNamed(context, '/search');
+                            final todoCubit = TodoCubit.get(context);
+                            // Combine all tasks for comprehensive search
+                            final allDatabaseTasks = [
+                              ...todoCubit.tasks,
+                              ...todoCubit.doneTasks,
+                              ...todoCubit.filteredTasks,
+                            ].toSet().toList(); // Remove duplicates
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) => BlocProvider(
+                                  create: (context) => SearchCubit(
+                                    allTasks: allDatabaseTasks
+                                        .map((task) => task.toMap())
+                                        .toList(),
+                                  ),
+                                  child: const SearchScreen(),
+                                ),
+                              ),
+                            );
                           },
+                          splashRadius: 20,
                         ),
                       ),
                     ],
@@ -118,14 +139,15 @@ class DoneTaskScreen extends StatelessWidget {
             Expanded(
               child: tasks.isNotEmpty
                   ? Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 20.0),
+                      padding: EdgeInsets.symmetric(
+                          vertical: 10.0.h, horizontal: 15.w),
                       child: ListView.separated(
                         padding: EdgeInsets.zero,
                         physics: const BouncingScrollPhysics(
                           parent: AlwaysScrollableScrollPhysics(),
                         ),
                         itemBuilder: (context, index) => Hero(
-                          tag: 'task_${tasks[index]['id']}',
+                          tag: 'task_${tasks[index].id}',
                           child: Material(
                             type: MaterialType.transparency,
                             child: buildTaskItem(

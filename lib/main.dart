@@ -1,29 +1,29 @@
 import 'package:animated_theme_switcher/animated_theme_switcher.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/services.dart';
+import 'package:todo_app/componants/bloc_observer_class.dart';
 import 'package:todo_app/cubit/cubit.dart';
-import 'package:todo_app/cubit/search/search_cubit.dart';
-import 'package:todo_app/screens/splash_screen.dart';
-import 'package:todo_app/screens/search_screen.dart';
+import 'package:todo_app/layout/home_layout.dart';
+import 'package:todo_app/screens/dedication_screen.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:todo_app/services/notification_service.dart';
-import 'package:flutter/services.dart';
-
-//import 'componants/bloc_observer_class.dart';
+import 'package:todo_app/shared/cache_helper.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  //Bloc.observer = MyBlocObserver();
-
-  final prefs = await SharedPreferences.getInstance();
-  final showOnboarding = prefs.getBool('showOnboarding') ?? true;
-  bool isDark = prefs.getBool('isDark') ?? false;
-  ThemeData initTheme = isDark ? darkTheme : lightTheme;
-
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    statusBarIconBrightness: Brightness.dark,
+    statusBarBrightness: Brightness.light,
+  ));
+  Bloc.observer = MyBlocObserver();
+  await CacheHelper.init();
   await NotificationService.initializeNotification();
-
-  runApp(MyApp(showOnboarding: showOnboarding, initTheme: initTheme));
+  bool? isDark = CacheHelper.getBool('isDark');
+  final showOnboarding = await CacheHelper.getBool('showOnboarding') ?? true;
+  ThemeData initTheme = isDark ?? false ? darkTheme : lightTheme;
+  runApp(MyApp(initTheme: initTheme, showOnboarding: showOnboarding));
 }
 
 ThemeData darkTheme = ThemeData(
@@ -38,6 +38,11 @@ ThemeData darkTheme = ThemeData(
     error: Colors.redAccent,
   ),
   appBarTheme: const AppBarTheme(
+    systemOverlayStyle: SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light,
+      statusBarBrightness: Brightness.dark,
+    ),
     titleSpacing: 20.0,
     iconTheme: IconThemeData(
       color: Colors.white,
@@ -95,6 +100,11 @@ ThemeData lightTheme = ThemeData(
     error: Colors.redAccent,
   ),
   appBarTheme: const AppBarTheme(
+    systemOverlayStyle: SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.dark,
+      statusBarBrightness: Brightness.light,
+    ),
     titleSpacing: 20.0,
     iconTheme: IconThemeData(
       color: Colors.white,
@@ -141,62 +151,41 @@ ThemeData lightTheme = ThemeData(
 );
 
 class MyApp extends StatelessWidget {
-  final bool showOnboarding;
-  // ignore: prefer_typing_uninitialized_variables
-  final ThemeData initTheme;
   const MyApp(
-      {super.key, required this.showOnboarding, required this.initTheme});
+      {super.key, required this.initTheme, required this.showOnboarding});
+  final ThemeData initTheme;
+  final bool showOnboarding;
 
   @override
   Widget build(BuildContext context) {
-    return ScreenUtilInit(
-      designSize: const Size(360, 690),
-      minTextAdapt: true,
-      splitScreenMode: true,
-      builder: (context, child) {
-        return ThemeProvider(
-          initTheme: initTheme,
-          builder: (_, myTheme) {
-            return MultiBlocProvider(
-              providers: [
-                BlocProvider(
-                  create: (context) => TodoCubit()..CreateDB(),
-                ),
-                BlocProvider(
-                  create: (context) => SearchCubit(
-                    allTasks: TodoCubit.get(context).tasks,
+    return ThemeProvider(
+        initTheme: initTheme,
+        builder: (context, theme) {
+          return ScreenUtilInit(
+              designSize: const Size(360, 690),
+              minTextAdapt: true,
+              splitScreenMode: true,
+              builder: (context, child) {
+                return MultiBlocProvider(
+                  providers: [
+                    BlocProvider(
+                      create: (context) => TodoCubit()..CreateDB(),
+                    ),
+                  ],
+                  child: MaterialApp(
+                    debugShowCheckedModeBanner: false,
+                    title: 'Todo App',
+                    theme: theme,
+                    darkTheme: darkTheme,
+                    themeMode: ThemeMode.system,
+                    initialRoute: '/',
+                    routes: {
+                      '/': (context) => const DedicationScreen(),
+                      '/home': (context) => HomeScreen(),
+                    },
                   ),
-                ),
-              ],
-              child: MaterialApp(
-                debugShowCheckedModeBanner: false,
-                title: 'Todo App',
-                theme: myTheme,
-                home: const SplashScreen(),
-                routes: {
-                  '/search': (context) => BlocProvider(
-                        create: (context) => SearchCubit(
-                          allTasks: TodoCubit.get(context).tasks,
-                        ),
-                        child: const SearchScreen(),
-                      ),
-                },
-                builder: (context, child) {
-                  final isDarkMode = myTheme.brightness == Brightness.dark;
-                  SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
-                    statusBarColor: Colors.transparent,
-                    statusBarIconBrightness: isDarkMode ? Brightness.light : Brightness.dark,
-                    statusBarBrightness: isDarkMode ? Brightness.dark : Brightness.light,
-                    systemNavigationBarColor: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
-                    systemNavigationBarIconBrightness: isDarkMode ? Brightness.light : Brightness.dark,
-                  ));
-                  return child!;
-                },
-              ),
-            );
-          },
-        );
-      },
-    );
+                );
+              });
+        });
   }
 }

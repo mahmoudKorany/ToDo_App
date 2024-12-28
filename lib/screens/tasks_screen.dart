@@ -40,7 +40,7 @@ class _TasksScreenState extends State<TasksScreen> {
                           padding: EdgeInsets.zero,
                           itemBuilder: (context, index) {
                             return Hero(
-                              tag: 'task_${tasks[index]['id']}',
+                              tag: 'task_${tasks[index].id}',
                               child: Material(
                                 type: MaterialType.transparency,
                                 child: buildTaskItem(

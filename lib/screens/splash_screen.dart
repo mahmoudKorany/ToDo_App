@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:todo_app/layout/home_layout.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:todo_app/screens/onboarding_screen.dart';
+import 'package:todo_app/shared/cache_helper.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -51,8 +51,7 @@ class _SplashScreenState extends State<SplashScreen>
 
     Future.delayed(const Duration(seconds: 3), () async {
       if (mounted) {
-        final prefs = await SharedPreferences.getInstance();
-        final showOnboarding = prefs.getBool('showOnboarding') ?? true;
+        final showOnboarding = CacheHelper.getBool('showOnboarding') ?? true;
 
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
@@ -86,19 +85,19 @@ class _SplashScreenState extends State<SplashScreen>
           ),
         ),
         child: SafeArea(
-          child: AnimatedBuilder(
-            animation: _animationController,
-            builder: (context, child) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Transform.translate(
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                AnimatedBuilder(
+                  animation: _animationController,
+                  builder: (context, child) {
+                    return Transform.translate(
                       offset: Offset(0, _slideAnimation.value),
                       child: Transform.scale(
                         scale: _scaleAnimation.value,
-                        child: FadeTransition(
-                          opacity: _fadeAnimation,
+                        child: Opacity(
+                          opacity: _fadeAnimation.value,
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -160,11 +159,12 @@ class _SplashScreenState extends State<SplashScreen>
                           ),
                         ),
                       ),
-                    ),
-                  ],
+                    );
+                  },
                 ),
-              );
-            },
+                SizedBox(height: 50.h),
+              ],
+            ),
           ),
         ),
       ),

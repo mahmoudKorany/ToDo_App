@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:todo_app/models/task_model.dart';
 import 'package:todo_app/screens/task_detail_screen.dart';
 import '../cubit/search/search_cubit.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -778,7 +779,17 @@ class _SearchScreenState extends State<SearchScreen>
               context,
               PageRouteBuilder(
                 pageBuilder: (context, animation, secondaryAnimation) =>
-                    TaskDetailScreen(task: task),
+                    TaskDetailScreen(
+                        task: TaskModel(
+                  id: task['id'],
+                  title: task['title'],
+                  time: task['time'],
+                  date: task['date'],
+                  status: task['status'],
+                  details: task['details'],
+                  priority: task['priority'],
+                  category: task['category'],
+                )),
                 transitionsBuilder:
                     (context, animation, secondaryAnimation, child) {
                   const begin = Offset(1.0, 0.0);
